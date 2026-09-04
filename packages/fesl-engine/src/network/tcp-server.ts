@@ -40,11 +40,18 @@ export class TcpServer extends EventEmitter {
     if (this.isRunning) return;
     this.isRunning = true;
 
+    // Ensure both MOHPA (18020) and BF2/later (18270) client ports are always active
+    const clientPorts = new Set<number>([18020, 18270]);
+    if (config.feslClientPort) {
+      clientPorts.add(config.feslClientPort);
+    }
+
     const defaultConfigs: PortListenerConfig[] = portConfigs || [
-      { port: config.feslClientPort, isTls: true, name: 'FESL Client (TLS)' },
-      ...(config.feslClientPort !== 18270
-        ? [{ port: 18270, isTls: true, name: 'FESL Alt / Legacy Client (TLS)' }]
-        : []),
+      ...Array.from(clientPorts).map((p) => ({
+        port: p,
+        isTls: true,
+        name: p === 18020 ? 'FESL Client MOHPA (TLS 18020)' : `FESL Client (TLS ${p})`,
+      })),
       { port: config.feslServerPort, isTls: true, name: 'FESL Server (TLS)' },
       { port: config.theaterClientPort, isTls: false, name: 'Theater Client (TCP)' },
       { port: config.theaterServerPort, isTls: false, name: 'Theater Server (TCP)' },

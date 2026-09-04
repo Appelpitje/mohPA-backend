@@ -95,8 +95,8 @@ export class TlsManager {
       }
     }
 
-    // Generate self-signed certificate on the fly
-    this.certificates = this.generateSelfSignedCert('centralspy.ea.com');
+    // Generate self-signed certificate on the fly with EA FESL Common Name
+    this.certificates = this.generateSelfSignedCert('mohpa.fesl.ea.com');
     return this.certificates;
   }
 
@@ -177,19 +177,38 @@ function createSelfSignedX509Pem(commonName: string, publicKeyPem: string, priva
     ])
   );
 
-  // SubjectAltName: DNS: commonName, DNS: localhost, IP: 127.0.0.1
+  // SubjectAltName: include all EA FESL/Theater hostnames, wildcards, and IPs
+  const dnsNames = [
+    commonName,
+    'mohpa.fesl.ea.com',
+    'fesl.ea.com',
+    '*.fesl.ea.com',
+    '*.ea.com',
+    'theater.ea.com',
+    'mohpa.theater.ea.com',
+    'eagames.fesl.ea.com',
+    'demangler.ea.com',
+    'centralspy.ea.com',
+    'centralspy.appelpitje.dev',
+    'localhost',
+  ];
+  // Deduplicate DNS names
+  const uniqueDns = Array.from(new Set(dnsNames));
+
+  const sanItems = uniqueDns.map((name) => derTagged(0x82, Buffer.from(name, 'ascii')));
+  // Add IPv4 addresses (127.0.0.1 and public IP 178.105.150.25)
+  sanItems.push(derTagged(0x87, Buffer.from([127, 0, 0, 1])));
+  if (config.publicIp && config.publicIp !== '127.0.0.1') {
+    const ipOctets = config.publicIp.split('.').map((o) => parseInt(o, 10));
+    if (ipOctets.length === 4 && ipOctets.every((o) => !isNaN(o) && o >= 0 && o <= 255)) {
+      sanItems.push(derTagged(0x87, Buffer.from(ipOctets)));
+    }
+  }
+
   const sanDer = derSequence(
     Buffer.concat([
       derOid(Buffer.from([0x55, 0x1d, 0x11])), // id-ce-subjectAltName
-      derOctetString(
-        derSequence(
-          Buffer.concat([
-            derTagged(0x82, Buffer.from(commonName, 'ascii')), // dNSName
-            derTagged(0x82, Buffer.from('localhost', 'ascii')),
-            derTagged(0x87, Buffer.from([127, 0, 0, 1])), // iPAddress
-          ])
-        )
-      ),
+      derOctetString(derSequence(Buffer.concat(sanItems))),
     ])
   );
 

@@ -14,6 +14,7 @@ export interface CreateGameServerData {
   queryPort?: number;
   secretKey?: string;
   isRanked?: boolean;
+  isOnline?: boolean;
   maxPlayers?: number;
   currentPlayers?: number;
   mapName?: string;
@@ -36,13 +37,14 @@ export class GameServerRepository {
 
   public async register(data: CreateGameServerData): Promise<GameServer> {
     const secretKey = data.secretKey || crypto.randomBytes(24).toString('hex');
+    const isOnline = data.isOnline !== undefined ? data.isOnline : true;
     const sql = `
       INSERT INTO game_servers (
         name, game_slug, ip_address, port, query_port, secret_key,
         is_ranked, is_online, last_heartbeat, max_players, current_players,
         map_name, game_mode, details
       )
-      VALUES ($1, $2, $3, $4, $5, $6, $7, TRUE, NOW(), $8, $9, $10, $11, $12)
+      VALUES ($1, $2, $3, $4, $5, $6, $7, $8, NOW(), $9, $10, $11, $12, $13)
       RETURNING *
     `;
     const params = [
@@ -53,6 +55,7 @@ export class GameServerRepository {
       data.queryPort || 0,
       secretKey,
       data.isRanked !== undefined ? data.isRanked : true,
+      isOnline,
       data.maxPlayers || 64,
       data.currentPlayers || 0,
       data.mapName || '',
@@ -117,6 +120,52 @@ export class GameServerRepository {
     if (metadata.details !== undefined) {
       setClauses.push(`details = $${paramIndex++}`);
       params.push(JSON.stringify(metadata.details));
+    }
+
+    params.push(id);
+    const sql = `
+      UPDATE game_servers
+      SET ${setClauses.join(', ')}
+      WHERE id = $${paramIndex}
+      RETURNING id
+    `;
+
+    const result = await this.db.query(sql, params);
+    return result.rowCount > 0;
+  }
+
+  public async updateServerQuery(id: string, queryResult: Partial<GameServer> & { isOnline?: boolean }): Promise<boolean> {
+    const setClauses: string[] = ['last_heartbeat = NOW()'];
+    const params: any[] = [];
+    let paramIndex = 1;
+
+    if (queryResult.isOnline !== undefined) {
+      setClauses.push(`is_online = $${paramIndex++}`);
+      params.push(queryResult.isOnline);
+    }
+    if (queryResult.name !== undefined) {
+      setClauses.push(`name = $${paramIndex++}`);
+      params.push(queryResult.name);
+    }
+    if (queryResult.currentPlayers !== undefined) {
+      setClauses.push(`current_players = $${paramIndex++}`);
+      params.push(queryResult.currentPlayers);
+    }
+    if (queryResult.maxPlayers !== undefined) {
+      setClauses.push(`max_players = $${paramIndex++}`);
+      params.push(queryResult.maxPlayers);
+    }
+    if (queryResult.mapName !== undefined) {
+      setClauses.push(`map_name = $${paramIndex++}`);
+      params.push(queryResult.mapName);
+    }
+    if (queryResult.gameMode !== undefined) {
+      setClauses.push(`game_mode = $${paramIndex++}`);
+      params.push(queryResult.gameMode);
+    }
+    if (queryResult.details !== undefined) {
+      setClauses.push(`details = $${paramIndex++}`);
+      params.push(JSON.stringify(queryResult.details));
     }
 
     params.push(id);

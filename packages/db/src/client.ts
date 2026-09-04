@@ -249,7 +249,8 @@ export class MemoryDbClient implements DbClient {
   }
 
   private handleInsert<T>(sql: string, params: any[]): QueryResult<T> {
-    const match = sql.match(/INSERT INTO\s+([a-zA-Z0-9_]+)\s*\((.*?)\)\s*VALUES\s*\((.*?)\)/is);
+    const match = sql.match(/INSERT INTO\s+([a-zA-Z0-9_]+)\s*\(([\s\S]*?)\)\s*VALUES\s*\(([\s\S]*?)\)(?:\s+RETURNING|\s+ON CONFLICT|\s*;|\s*$)/i) ||
+      sql.match(/INSERT INTO\s+([a-zA-Z0-9_]+)\s*\((.*?)\)\s*VALUES\s*\((.*?)\)/is);
     if (!match) return { rows: [], rowCount: 0 };
 
     const tableName = match[1].toLowerCase();

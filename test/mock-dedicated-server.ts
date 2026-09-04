@@ -5,6 +5,7 @@
 
 import * as net from 'node:net';
 import * as tls from 'node:tls';
+import * as dgram from 'node:dgram';
 import { EventEmitter } from 'node:events';
 import {
   encodePacket,
@@ -65,6 +66,7 @@ export class MockDedicatedServer extends EventEmitter {
 
   private feslSocket: tls.TLSSocket | null = null;
   private theaterSocket: net.Socket | null = null;
+  private querySocket: dgram.Socket | null = null;
 
   private feslBuffer = Buffer.alloc(0);
   private theaterBuffer = Buffer.alloc(0);
@@ -509,10 +511,74 @@ export class MockDedicatedServer extends EventEmitter {
   }
 
   /**
+   * Starts a UDP query listener on queryPort to respond to GameSpy 1 and Quake 3 status queries.
+   */
+  public async startQueryListener(): Promise<number> {
+    return new Promise((resolve, reject) => {
+      try {
+        const socket = dgram.createSocket('udp4');
+        socket.on('error', (err) => {
+          this.log(`Query socket error: ${err.message}`);
+        });
+
+        socket.on('message', (msg: Buffer, rinfo: dgram.RemoteInfo) => {
+          const str = msg.toString('binary');
+          const asciiStr = msg.toString('utf-8');
+
+          // Quake 3 probe
+          if (str.includes('getstatus') || str.includes('getinfo')) {
+            const playerLines = Array.from(this.players.values())
+              .map((p, idx) => `${100 - idx * 10} 35 "${p.name}"`)
+              .join('\n');
+
+            const resp = `\xFF\xFF\xFF\xFFstatusResponse\n\\sv_hostname\\${this.serverName}\\mapname\\${this.mapName}\\gametype\\${this.gameMode}\\sv_maxclients\\${this.maxPlayers}\\numplayers\\${this.players.size}\\version\\MOHPA 1.2\\pure\\1\\dedicated\\1\n${playerLines}${playerLines ? '\n' : ''}`;
+            const buf = Buffer.from(resp, 'binary');
+            socket.send(buf, 0, buf.length, rinfo.port, rinfo.address, () => {});
+            return;
+          }
+
+          // GameSpy 1 probe
+          if (asciiStr.includes('status') || asciiStr.includes('info')) {
+            const playerParts: string[] = [];
+            let pIdx = 0;
+            for (const p of this.players.values()) {
+              playerParts.push(
+                `\\player_${pIdx}\\${p.name}\\score_${pIdx}\\${100 - pIdx * 10}\\ping_${pIdx}\\35\\team_${pIdx}\\${p.team || 0}`
+              );
+              pIdx++;
+            }
+
+            const resp = `\\hostname\\${this.serverName}\\hostport\\${this.gamePort}\\mapname\\${this.mapName}\\gametype\\${this.gameMode}\\numplayers\\${this.players.size}\\maxplayers\\${this.maxPlayers}\\gamever\\1.2\\dedicated\\1${playerParts.join('')}\\final\\`;
+            const buf = Buffer.from(resp, 'utf-8');
+            socket.send(buf, 0, buf.length, rinfo.port, rinfo.address, () => {});
+            return;
+          }
+        });
+
+        socket.bind(this.queryPort, '0.0.0.0', () => {
+          this.querySocket = socket;
+          const addr = socket.address();
+          this.log(`UDP Query Listener active on 0.0.0.0:${addr.port} (GameSpy 1 & Quake 3)`);
+          resolve(addr.port);
+        });
+      } catch (err) {
+        reject(err);
+      }
+    });
+  }
+
+  /**
    * Shuts down and disconnects dedicated server sockets.
    */
   public async stop(): Promise<void> {
     this.log('Shutting down Mock Dedicated Server...');
+
+    if (this.querySocket) {
+      try {
+        this.querySocket.close();
+      } catch {}
+      this.querySocket = null;
+    }
 
     if (this.theaterSocket && !this.theaterSocket.destroyed) {
       this.theaterSocket.end();
@@ -538,6 +604,9 @@ export class MockDedicatedServer extends EventEmitter {
    * Complete startup and registration lifecycle.
    */
   public async start(): Promise<number> {
+    await this.startQueryListener().catch((err) => {
+      this.log(`Warning: could not bind query listener on port ${this.queryPort}: ${err.message}`);
+    });
     await this.connectFesl();
     await this.sendHello();
     await this.authenticate();

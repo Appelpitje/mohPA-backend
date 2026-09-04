@@ -1,0 +1,3 @@
+centralspy.appelpitje.dev {
+    reverse_proxy api-service:3000
+}

@@ -24,6 +24,18 @@ async function start() {
   console.log('[API Service] Building Fastify application...');
   const server = await buildServer({ db, logger: true });
 
+  // Initialize and start background dedicated server query poller
+  let queryPoller: any = null;
+  if (process.env.DISABLE_QUERY_POLLER !== 'true') {
+    const { ServerQueryPoller } = await import('./services/server-query-poller.js');
+    const pollInterval = process.env.QUERY_POLLER_INTERVAL_MS
+      ? parseInt(process.env.QUERY_POLLER_INTERVAL_MS, 10)
+      : 30000;
+    queryPoller = new ServerQueryPoller(server.serverRepo, pollInterval);
+    queryPoller.start();
+    console.log(`[API Service] Dedicated server UDP query poller active (interval: ${pollInterval}ms)`);
+  }
+
   try {
     await server.listen({ port, host });
     console.log(`[API Service] CentralSpy API Service running at http://${host}:${port}`);
@@ -39,6 +51,9 @@ async function start() {
     process.on(signal, async () => {
       console.log(`\n[API Service] Received ${signal}. Shutting down gracefully...`);
       try {
+        if (queryPoller) {
+          queryPoller.stop();
+        }
         await server.close();
         await closeDbClient();
         console.log('[API Service] Graceful shutdown complete.');

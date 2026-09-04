@@ -1,0 +1,84 @@
+services:
+  postgres:
+    image: postgres:17-alpine
+    container_name: centralspy-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: centralspy
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB: centralspy
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+
+  redis:
+    image: redis:7-alpine
+    container_name: centralspy-redis
+    restart: unless-stopped
+    volumes:
+      - redis_data:/data
+
+  api-service:
+    build:
+      context: .
+      dockerfile: Dockerfile.prod
+    command: [node, packages/api-service/dist/index.js]
+    container_name: centralspy-api
+    restart: unless-stopped
+    depends_on:
+      - postgres
+      - redis
+    environment:
+      DATABASE_URL: postgresql://centralspy:${POSTGRES_PASSWORD}@postgres:5432/centralspy
+      REDIS_URL: redis://redis:6379
+      API_PORT: 3000
+      API_HOST: 0.0.0.0
+      INTERNAL_API_KEY: ${INTERNAL_API_KEY}
+      JWT_SECRET: ${JWT_SECRET}
+    ports:
+      - 127.0.0.1:3000:3000
+
+  fesl-engine:
+    build:
+      context: .
+      dockerfile: Dockerfile.prod
+    command: [node, packages/fesl-engine/dist/main.js]
+    container_name: centralspy-fesl
+    restart: unless-stopped
+    depends_on:
+      - api-service
+      - redis
+    environment:
+      REDIS_URL: redis://redis:6379
+      API_SERVICE_URL: http://api-service:3000
+      INTERNAL_API_KEY: ${INTERNAL_API_KEY}
+      FESL_CLIENT_PORT: 18270
+      FESL_SERVER_PORT: 18051
+      THEATER_CLIENT_PORT: 18275
+      THEATER_SERVER_PORT: 18056
+      PUBLIC_IP: ${PUBLIC_IP:-178.105.150.25}
+    ports:
+      - 18020:18020
+      - 18270:18270
+      - 18051:18051
+      - 18275:18275
+      - 18056:18056
+
+  caddy:
+    image: caddy:2-alpine
+    container_name: centralspy-caddy
+    restart: unless-stopped
+    ports:
+      - 80:80
+      - 443:443
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy_data:/data
+      - caddy_config:/config
+    depends_on:
+      - api-service
+
+volumes:
+  postgres_data:
+  redis_data:
+  caddy_data:
+  caddy_config:

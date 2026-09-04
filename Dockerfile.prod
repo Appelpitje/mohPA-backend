@@ -1,0 +1,17 @@
+FROM node:22-alpine
+WORKDIR /app
+ENV NODE_ENV=production
+
+COPY package.json package-lock.json* ./
+COPY packages/shared/package.json ./packages/shared/
+COPY packages/db/package.json ./packages/db/
+COPY packages/api-service/package.json ./packages/api-service/
+COPY packages/fesl-engine/package.json ./packages/fesl-engine/
+
+RUN npm install --omit=dev --ignore-scripts --no-audit
+
+COPY packages/shared/dist ./packages/shared/dist
+COPY packages/db/dist ./packages/db/dist
+COPY packages/db/src/migrations ./packages/db/dist/migrations
+COPY packages/api-service/dist ./packages/api-service/dist
+COPY packages/fesl-engine/dist ./packages/fesl-engine/dist

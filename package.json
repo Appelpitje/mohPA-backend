@@ -1,0 +1,25 @@
+{
+  "name": "centralspy-backend",
+  "version": "1.0.0",
+  "private": true,
+  "description": "CentralSpy EA FESL & Theater Server Emulation Backend",
+  "workspaces": [
+    "packages/*"
+  ],
+  "scripts": {
+    "build": "npm run build --workspace=@centralspy/shared && npm run build --workspace=@centralspy/db && npm run build --workspace=@centralspy/api-service && npm run build --workspace=@centralspy/fesl-engine",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "test:e2e": "tsx test/e2e-simulation.ts",
+    "start:api": "tsx packages/api-service/src/index.ts",
+    "start:fesl": "tsx packages/fesl-engine/src/main.ts",
+    "dev": "concurrently \"npm run start:api\" \"npm run start:fesl\""
+  },
+  "devDependencies": {
+    "@types/node": "^22.13.5",
+    "concurrently": "^9.1.2",
+    "tsx": "^4.19.3",
+    "typescript": "^5.7.3",
+    "vitest": "^3.0.7"
+  }
+}

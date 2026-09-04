@@ -1,0 +1,28 @@
+{
+  "compilerOptions": {
+    "target": "ES2022",
+    "module": "NodeNext",
+    "moduleResolution": "NodeNext",
+    "lib": ["ES2022"],
+    "declaration": true,
+    "declarationMap": true,
+    "sourceMap": true,
+    "strict": true,
+    "esModuleInterop": true,
+    "skipLibCheck": true,
+    "forceConsistentCasingInFileNames": true,
+    "resolveJsonModule": true,
+    "baseUrl": ".",
+    "paths": {
+      "@centralspy/shared": ["packages/shared/src/index.ts"],
+      "@centralspy/shared/*": ["packages/shared/src/*"],
+      "@centralspy/db": ["packages/db/src/index.ts"],
+      "@centralspy/db/*": ["packages/db/src/*"],
+      "@centralspy/api-service": ["packages/api-service/src/index.ts"],
+      "@centralspy/api-service/*": ["packages/api-service/src/*"],
+      "@centralspy/fesl-engine": ["packages/fesl-engine/src/index.ts"],
+      "@centralspy/fesl-engine/*": ["packages/fesl-engine/src/*"]
+    }
+  },
+  "exclude": ["node_modules", "dist"]
+}

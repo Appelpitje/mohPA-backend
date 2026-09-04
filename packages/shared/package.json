@@ -1,0 +1,18 @@
+{
+  "name": "@centralspy/shared",
+  "version": "1.0.0",
+  "type": "module",
+  "private": true,
+  "description": "CentralSpy Shared Types, Codecs, and Game Configurations",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "scripts": {
+    "build": "tsc",
+    "test": "vitest run"
+  },
+  "dependencies": {},
+  "devDependencies": {
+    "@types/node": "^22.13.5",
+    "typescript": "^5.7.3"
+  }
+}

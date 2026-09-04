@@ -1,0 +1,26 @@
+{
+  "name": "@centralspy/fesl-engine",
+  "version": "1.0.0",
+  "private": true,
+  "description": "High-concurrency EA FESL & Theater TCP/TLS Protocol Server",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "scripts": {
+    "build": "tsc",
+    "start": "tsx src/main.ts",
+    "test": "vitest run"
+  },
+  "dependencies": {
+    "@centralspy/shared": "*",
+    "dotenv": "^16.4.7",
+    "ioredis": "^5.4.2",
+    "ws": "^8.18.0"
+  },
+  "devDependencies": {
+    "@types/node": "^22.13.5",
+    "@types/ws": "^8.5.14",
+    "tsx": "^4.19.3",
+    "typescript": "^5.7.3",
+    "vitest": "^3.0.7"
+  }
+}

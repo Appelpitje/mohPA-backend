@@ -1,0 +1,33 @@
+{
+  "name": "@centralspy/api-service",
+  "version": "1.0.0",
+  "type": "module",
+  "private": true,
+  "description": "CentralSpy Central REST API, Auth, and WebSocket Inspector Service",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "scripts": {
+    "build": "tsc",
+    "start": "node dist/index.js",
+    "dev": "tsx watch src/index.ts",
+    "test": "vitest run"
+  },
+  "dependencies": {
+    "@centralspy/db": "*",
+    "@centralspy/shared": "*",
+    "@fastify/cors": "^10.0.2",
+    "@fastify/jwt": "^9.0.4",
+    "@fastify/rate-limit": "^10.2.2",
+    "@fastify/websocket": "^11.0.2",
+    "bcryptjs": "^2.4.3",
+    "dotenv": "^16.4.7",
+    "fastify": "^5.2.1",
+    "ws": "^8.18.0"
+  },
+  "devDependencies": {
+    "@types/bcryptjs": "^2.4.6",
+    "@types/node": "^22.13.5",
+    "@types/ws": "^8.5.14",
+    "typescript": "^5.7.3"
+  }
+}

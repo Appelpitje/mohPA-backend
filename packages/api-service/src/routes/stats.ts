@@ -1,0 +1,95 @@
+/**
+ * CentralSpy Stats & Leaderboards REST Routes (/api/v1/stats)
+ */
+
+import { FastifyPluginAsync } from 'fastify';
+import { getGameConfig, listGameConfigs, GameConfig } from '@centralspy/shared';
+
+export const statsRoutes: FastifyPluginAsync = async (fastify) => {
+  // Leaderboard for a game
+  fastify.get('/leaderboard/:game_slug', async (request, reply) => {
+    const { game_slug } = request.params as any;
+    const query = request.query as any || {};
+
+    const config = getGameConfig(game_slug);
+    if (!config) {
+      return reply.code(400).send({ error: `Unknown game slug: ${game_slug}` });
+    }
+
+    const sort = (query.sort || 'score') as 'score' | 'kills' | 'wins';
+    const limit = query.limit ? parseInt(query.limit, 10) : 50;
+    const offset = query.offset ? parseInt(query.offset, 10) : 0;
+
+    const leaderboard = await fastify.statsRepo.getLeaderboard(config.slug, sort, limit, offset);
+
+    return reply.send({
+      gameSlug: config.slug,
+      gameName: config.name,
+      sortBy: sort,
+      limit,
+      offset,
+      count: leaderboard.length,
+      leaderboard
+    });
+  });
+
+  // Public player / persona search lookup
+  fastify.get('/players/:name', async (request, reply) => {
+    const { name } = request.params as any;
+    const query = request.query as any || {};
+    const gameSlug = query.game_slug || query.gameSlug;
+
+    let persona = null;
+    if (gameSlug) {
+      persona = await fastify.personaRepo.findByNameAndGame(name, gameSlug);
+    } else {
+      // Find across configured games
+      const allGames = listGameConfigs().map((g) => g.slug);
+      for (const g of allGames) {
+        const found = await fastify.personaRepo.findByNameAndGame(name, g);
+        if (found) {
+          persona = found;
+          break;
+        }
+      }
+    }
+
+    if (!persona) {
+      return reply.code(404).send({ error: `Player '${name}' not found` });
+    }
+
+    const stats = await fastify.statsRepo.getStats(persona.id);
+    return reply.send({
+      persona,
+      stats: stats || {
+        personaId: persona.id,
+        score: 0,
+        kills: 0,
+        deaths: 0,
+        wins: 0,
+        losses: 0,
+        timePlayedSeconds: 0,
+        customStats: {}
+      }
+    });
+  });
+
+  // Recent match history for game
+  fastify.get('/matches/:game_slug', async (request, reply) => {
+    const { game_slug } = request.params as any;
+    const query = request.query as any || {};
+    const limit = query.limit ? parseInt(query.limit, 10) : 20;
+
+    const config = getGameConfig(game_slug);
+    if (!config) {
+      return reply.code(400).send({ error: `Unknown game slug: ${game_slug}` });
+    }
+
+    const matches = await fastify.statsRepo.getMatchHistory(config.slug, limit);
+    return reply.send({
+      gameSlug: config.slug,
+      count: matches.length,
+      matches
+    });
+  });
+};

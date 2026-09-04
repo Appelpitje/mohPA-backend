@@ -1,0 +1,45 @@
+import dotenv from 'dotenv';
+
+dotenv.config();
+
+export interface FeslEngineConfig {
+  host: string;
+  publicIp: string;
+  feslClientPort: number;
+  feslServerPort: number;
+  theaterClientPort: number;
+  theaterServerPort: number;
+  inspectorPort: number;
+  theaterHost: string;
+  messengerHost: string;
+  messengerPort: number;
+  activityTimeoutSecs: number;
+  sessionTtlSecs: number;
+  defaultDomainPartition: string;
+  redisUrl?: string;
+  apiServiceUrl: string;
+  internalApiKey: string;
+  tlsCertPath?: string;
+  tlsKeyPath?: string;
+}
+
+export const config: FeslEngineConfig = {
+  host: process.env.HOST || '0.0.0.0',
+  publicIp: process.env.PUBLIC_IP || '127.0.0.1',
+  feslClientPort: parseInt(process.env.FESL_CLIENT_PORT || '18020', 10),
+  feslServerPort: parseInt(process.env.FESL_SERVER_PORT || '18051', 10),
+  theaterClientPort: parseInt(process.env.THEATER_CLIENT_PORT || '18275', 10),
+  theaterServerPort: parseInt(process.env.THEATER_SERVER_PORT || '18056', 10),
+  inspectorPort: parseInt(process.env.INSPECTOR_PORT || '9999', 10),
+  theaterHost: process.env.THEATER_HOST || process.env.PUBLIC_IP || '127.0.0.1',
+  messengerHost: process.env.MESSENGER_HOST || process.env.PUBLIC_IP || '127.0.0.1',
+  messengerPort: parseInt(process.env.MESSENGER_PORT || '18020', 10),
+  activityTimeoutSecs: parseInt(process.env.ACTIVITY_TIMEOUT_SECS || '120', 10),
+  sessionTtlSecs: parseInt(process.env.SESSION_TTL_SECS || '86400', 10), // 24 hours
+  defaultDomainPartition: process.env.DEFAULT_DOMAIN_PARTITION || 'mohpa',
+  redisUrl: process.env.REDIS_URL || 'redis://127.0.0.1:6379',
+  apiServiceUrl: process.env.API_SERVICE_URL || 'http://127.0.0.1:3000',
+  internalApiKey: process.env.INTERNAL_API_KEY || 'centralspy-internal-secret-token',
+  tlsCertPath: process.env.TLS_CERT_PATH,
+  tlsKeyPath: process.env.TLS_KEY_PATH,
+};

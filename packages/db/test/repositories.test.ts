@@ -158,6 +158,7 @@ describe('Database Repositories (In-Memory Engine)', () => {
       const leaderboard = await statsRepo.getLeaderboard('mohpa', 'score');
       expect(leaderboard.length).toBeGreaterThan(0);
       expect(leaderboard[0].personaName).toBe('ApexReaper');
+      expect(leaderboard[0].name).toBe('ApexReaper');
 
       const match = await statsRepo.recordMatch({
         gameSlug: 'mohpa',

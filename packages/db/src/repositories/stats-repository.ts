@@ -7,6 +7,7 @@ import { DbClient } from '../client.js';
 
 export interface LeaderboardEntry extends PersonaStats {
   personaName: string;
+  name: string;
   userId: string;
   gameSlug: string;
 }
@@ -136,6 +137,7 @@ export class StatsRepository {
     return result.rows.map(r => ({
       ...this.mapStats(r),
       personaName: r.persona_name,
+      name: r.persona_name,
       userId: r.user_id,
       gameSlug: r.game_slug
     }));

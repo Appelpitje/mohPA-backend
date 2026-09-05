@@ -4,6 +4,7 @@ import { EventEmitter } from 'node:events';
 import { decodePacket, FeslPacket, HEADER_SIZE } from '@centralspy/shared';
 import { FeslConnection } from './connection.js';
 import { TlsManager } from './tls-manager.js';
+import { Ssl2Socket } from './ssl2-socket.js';
 import { InspectorHub } from '../inspector/inspector-hub.js';
 import { config } from '../config/config.js';
 
@@ -70,24 +71,61 @@ export class TcpServer extends EventEmitter {
    */
   public listenPort(pConfig: PortListenerConfig): Promise<void> {
     return new Promise((resolve, reject) => {
-      const handleSocket = (socket: net.Socket | tls.TLSSocket) => {
-        this.handleNewConnection(socket, pConfig.port, pConfig.isTls);
-      };
-
       let server: net.Server | tls.Server;
 
       if (pConfig.isTls) {
-        const tlsOptions = this.tlsManager.getTlsOptions();
-        server = tls.createServer(tlsOptions, handleSocket as (socket: tls.TLSSocket) => void);
-        server.on('tlsClientError', (err: Error, socket: net.Socket) => {
-          console.error(`[TcpServer] TLS Client Error on port ${pConfig.port} from ${socket.remoteAddress}:${socket.remotePort}: ${err.message}`);
-        });
+        if (pConfig.port === 18020 || pConfig.name.includes('MOHPA')) {
+          // Dedicated SSL 2.0 listener for Medal of Honor: Pacific Assault (2004 DirtySDK)
+          server = net.createServer((rawSocket: net.Socket) => {
+            console.log(`[TcpServer] Incoming TCP connection from ${rawSocket.remoteAddress}:${rawSocket.remotePort} on port ${pConfig.port} (${pConfig.name})`);
+
+            rawSocket.once('data', (firstChunk: Buffer) => {
+              if (firstChunk.length === 0) return;
+
+              // SSL 2.0: 2-byte header with MSB set, msgType 1 (CLIENT_HELLO)
+              const isSsl2 = (firstChunk[0] & 0x80) !== 0 && firstChunk.length >= 3 && firstChunk[2] === 0x01;
+
+              if (isSsl2) {
+                console.log(`[TcpServer] Detected SSL 2.0 ClientHello on port ${pConfig.port} from ${rawSocket.remoteAddress}:${rawSocket.remotePort}`);
+                const certDer = this.tlsManager.getDerCertificate();
+                const certs = this.tlsManager.getCertificates();
+                const ssl2Socket = new Ssl2Socket({
+                  rawSocket,
+                  certDer,
+                  privateKeyPem: certs.key,
+                  initialChunk: firstChunk,
+                });
+
+                ssl2Socket.once('secureConnect', () => {
+                  this.handleNewConnection(ssl2Socket as any, pConfig.port, true);
+                });
+              } else {
+                console.log(`[TcpServer] Non-SSL2 data detected on port ${pConfig.port} from ${rawSocket.remoteAddress}:${rawSocket.remotePort}, treating as plain TCP`);
+                rawSocket.unshift(firstChunk);
+                this.handleNewConnection(rawSocket, pConfig.port, false);
+              }
+            });
+          });
+        } else {
+          // Standard modern TLS listener (Battlefield 2, 2142, and other FESL clients)
+          const tlsOptions = this.tlsManager.getTlsOptions();
+          server = tls.createServer(tlsOptions, (socket: tls.TLSSocket) => {
+            this.handleNewConnection(socket, pConfig.port, true);
+          });
+          server.on('tlsClientError', (err: Error, socket: net.Socket) => {
+            console.error(`[TcpServer] TLS Client Error on port ${pConfig.port} from ${socket.remoteAddress}:${socket.remotePort}: ${err.message}`);
+          });
+        }
       } else {
-        server = net.createServer(handleSocket);
+        server = net.createServer((socket: net.Socket) => {
+          this.handleNewConnection(socket, pConfig.port, false);
+        });
       }
 
       server.on('connection', (rawSocket: net.Socket) => {
-        console.log(`[TcpServer] Incoming TCP connection from ${rawSocket.remoteAddress}:${rawSocket.remotePort} on port ${pConfig.port} (${pConfig.name})`);
+        if (!pConfig.isTls || (!pConfig.name.includes('MOHPA') && pConfig.port !== 18020)) {
+          console.log(`[TcpServer] Incoming TCP connection from ${rawSocket.remoteAddress}:${rawSocket.remotePort} on port ${pConfig.port} (${pConfig.name})`);
+        }
       });
 
       server.on('error', (err: Error) => {

@@ -108,6 +108,18 @@ export class TlsManager {
   }
 
   /**
+   * Returns current certificate in binary DER format for SSL 2.0 / legacy handshakes.
+   */
+  public getDerCertificate(): Buffer {
+    const certs = this.getCertificates();
+    const b64 = certs.cert
+      .replace(/-----BEGIN CERTIFICATE-----/, '')
+      .replace(/-----END CERTIFICATE-----/, '')
+      .replace(/\s+/g, '');
+    return Buffer.from(b64, 'base64');
+  }
+
+  /**
    * Generates a self-signed X.509 certificate and RSA private key in PEM format.
    */
   public generateSelfSignedCert(commonName = 'centralspy.ea.com'): CertificatePair {

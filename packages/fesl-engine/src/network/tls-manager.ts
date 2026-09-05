@@ -111,9 +111,9 @@ export class TlsManager {
    * Generates a self-signed X.509 certificate and RSA private key in PEM format.
    */
   public generateSelfSignedCert(commonName = 'centralspy.ea.com'): CertificatePair {
-    // Generate RSA 2048 key pair
+    // Generate RSA 1024 key pair (1024-bit required by legacy EA DirtySDK clients like MOHPA)
     const { privateKey, publicKey } = crypto.generateKeyPairSync('rsa', {
-      modulusLength: 2048,
+      modulusLength: 1024,
       publicKeyEncoding: { type: 'spki', format: 'pem' },
       privateKeyEncoding: { type: 'pkcs8', format: 'pem' },
     });

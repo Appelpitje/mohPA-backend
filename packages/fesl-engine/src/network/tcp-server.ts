@@ -79,9 +79,16 @@ export class TcpServer extends EventEmitter {
       if (pConfig.isTls) {
         const tlsOptions = this.tlsManager.getTlsOptions();
         server = tls.createServer(tlsOptions, handleSocket as (socket: tls.TLSSocket) => void);
+        server.on('tlsClientError', (err: Error, socket: net.Socket) => {
+          console.error(`[TcpServer] TLS Client Error on port ${pConfig.port} from ${socket.remoteAddress}:${socket.remotePort}: ${err.message}`);
+        });
       } else {
         server = net.createServer(handleSocket);
       }
+
+      server.on('connection', (rawSocket: net.Socket) => {
+        console.log(`[TcpServer] Incoming TCP connection from ${rawSocket.remoteAddress}:${rawSocket.remotePort} on port ${pConfig.port} (${pConfig.name})`);
+      });
 
       server.on('error', (err: Error) => {
         console.error(`[TcpServer] Error on port ${pConfig.port} (${pConfig.name}): ${err.message}`);
@@ -111,6 +118,8 @@ export class TcpServer extends EventEmitter {
       serverPort,
       isTls,
     });
+
+    console.log(`[TcpServer] Established ${isTls ? 'TLS' : 'TCP'} connection ${connId} on port ${serverPort} from ${connection.remoteAddress}:${connection.remotePort}`);
 
     this.connections.set(connId, connection);
 
@@ -197,6 +206,8 @@ export class TcpServer extends EventEmitter {
 
           const txn = packet.payload.TXN || packet.payload.txn;
 
+          console.log(`[TcpServer] [${connection.id}] RECV ${packet.subsystem} (0x${packet.subtype.toString(16)}) TXN=${txn || 'none'} (${packet.packetLength} bytes)`);
+
           // Broadcast to WebSocket inspector
           InspectorHub.getInstance().broadcastPacket({
             id: `in_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`,
@@ -232,6 +243,8 @@ export class TcpServer extends EventEmitter {
    */
   private handleConnectionClose(connection: FeslConnection, reason?: string): void {
     if (!this.connections.has(connection.id)) return;
+
+    console.log(`[TcpServer] Connection closed: ${connection.id} (${reason || 'normal'})`);
 
     this.connections.delete(connection.id);
     connection.close(reason);

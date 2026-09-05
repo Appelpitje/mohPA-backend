@@ -79,6 +79,8 @@ export class FeslConnection {
       const rawString = typeof payload === 'string' ? payload : serializeKV(payload);
       const txn = (payloadObj as any).TXN || (payloadObj as any).txn;
 
+      console.log(`[TcpServer] [${this.id}] SEND ${subsystem} (0x${subtype.toString(16)}) TXN=${txn || 'none'} (${encoded.length} bytes)`);
+
       // Broadcast to WebSocket inspector
       InspectorHub.getInstance().broadcastPacket({
         id: `out_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`,

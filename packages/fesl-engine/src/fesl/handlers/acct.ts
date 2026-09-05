@@ -77,6 +77,7 @@ export async function handleAcct(ctx: FeslHandlerContext): Promise<Record<string
         userId: user.userId,
         profileId: user.userId,
         displayName: user.username,
+        nuid: user.email || user.username,
       };
     }
 
@@ -171,9 +172,11 @@ export async function handleAcct(ctx: FeslHandlerContext): Promise<Record<string
     }
 
     case FESL_TXN.GET_SUB_ACCOUNTS: {
+      const username = connection.session?.username || 'player';
       return {
         TXN: FESL_TXN.GET_SUB_ACCOUNTS,
-        subAccounts: [],
+        subAccounts: [username],
+        names: [username],
       };
     }
 

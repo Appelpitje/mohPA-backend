@@ -33,8 +33,10 @@ export async function handleFsys(ctx: FeslHandlerContext): Promise<Record<string
         curTime: `"${formatFeslDate(new Date())}"`,
         activityTimeoutSecs: config.activityTimeoutSecs,
         theaterHost: config.theaterHost,
+        theaterIp: config.publicIp,
         theaterPort,
         messengerHost: config.messengerHost,
+        messengerIp: config.publicIp,
         messengerPort: config.messengerPort,
       };
     }

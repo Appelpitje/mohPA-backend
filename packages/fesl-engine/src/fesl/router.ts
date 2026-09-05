@@ -87,6 +87,8 @@ export class FeslRouter extends EventEmitter {
       return;
     }
 
+    console.log(`[FeslRouter] [${connection.id}] RECV ${packet.subsystem} (0x${packet.subtype.toString(16)}) TXN=${txn}:`, JSON.stringify(packet.payload));
+
     try {
       const result = await handler(ctx);
 
@@ -98,9 +100,10 @@ export class FeslRouter extends EventEmitter {
       // If handler returned a payload object or packet
       const responseSubtype = (packet.subtype | 0x80000000) >>> 0;
       const responsePayload = 'payload' in result && typeof result.payload === 'object'
-        ? result.payload
-        : result;
+        ? (result as FeslPacket).payload
+        : (result as Record<string, any>);
 
+      console.log(`[FeslRouter] [${connection.id}] SEND ${packet.subsystem} (0x${responseSubtype.toString(16)}) TXN=${txn}:`, JSON.stringify(responsePayload));
       connection.sendPacket({
         subsystem: packet.subsystem,
         subtype: responseSubtype,

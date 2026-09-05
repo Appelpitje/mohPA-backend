@@ -40,8 +40,8 @@ describe('SSL 2.0 MOHPA Client End-to-End Test', () => {
     let writeKey: Buffer;
     let readCipher: Rc4Cipher;
     let writeCipher: Rc4Cipher;
-    let readSeq = 0;
-    let writeSeq = 0;
+    let readSeq = 1; // client expects SERVER_VERIFY as record 1
+    let writeSeq = 2; // client sends CLIENT_FINISHED as record 2
 
     let state = 'WAIT_SERVER_HELLO';
     let buffer = Buffer.alloc(0);
@@ -112,8 +112,8 @@ describe('SSL 2.0 MOHPA Client End-to-End Test', () => {
               cmkPayload,
             ]);
 
-            writeKey = deriveKey(masterKey, '0', challenge, connId); // client write is server read ('0')
-            readKey = deriveKey(masterKey, '1', challenge, connId);  // client read is server write ('1')
+            writeKey = deriveKey(masterKey, '1', challenge, connId); // client write is '1' (server read)
+            readKey = deriveKey(masterKey, '0', challenge, connId);  // client read is '0' (server write)
             writeCipher = new Rc4Cipher(writeKey);
             readCipher = new Rc4Cipher(readKey);
 

@@ -96,6 +96,10 @@ export class TcpServer extends EventEmitter {
                   initialChunk: firstChunk,
                 });
 
+                ssl2Socket.on('error', (err: Error) => {
+                  console.error(`[TcpServer] SSL 2.0 Error on port ${pConfig.port} from ${rawSocket.remoteAddress}:${rawSocket.remotePort}: ${err.message}`);
+                });
+
                 ssl2Socket.once('secureConnect', () => {
                   this.handleNewConnection(ssl2Socket as any, pConfig.port, true);
                 });

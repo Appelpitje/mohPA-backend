@@ -1,3 +1,10 @@
 centralspy.appelpitje.dev {
-    reverse_proxy api-service:3000
+    handle /downloads/* {
+        uri strip_prefix /downloads
+        root * /opt/mohpa
+        file_server
+    }
+    handle {
+        reverse_proxy api-service:3000
+    }
 }

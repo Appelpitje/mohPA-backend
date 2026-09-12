@@ -277,6 +277,17 @@ export class ApiClient {
     queryPort?: number;
     isRanked?: boolean;
     maxPlayers?: number;
+    skipQuery?: boolean;
+    mapName?: string;
+    gameMode?: string;
+    currentPlayers?: number;
+    region?: string;
+    country?: string;
+    countryCode?: string;
+    city?: string;
+    ping?: number;
+    tickRate?: number;
+    details?: Record<string, any>;
   }): Promise<{ serverId?: string; secretKey?: string } | null> {
     try {
       const res = await fetch(`${this.baseUrl}/api/v1/servers/register`, {

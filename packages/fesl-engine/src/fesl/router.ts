@@ -20,6 +20,22 @@ export interface FeslRouterEvents {
   error: (error: Error, connection: FeslConnection, packet: FeslPacket) => void;
 }
 
+/**
+ * Jabba FESL (MOHPA) matches replies by payload TID, not the header subtype.
+ * A response that omits TID is dropped ("tid %d not found") and the pending
+ * request times out as a connect error.
+ */
+function echoRequestTid(payload: Record<string, any>, request: FeslPacket): Record<string, any> {
+  const tid = request.payload.TID ?? request.payload.tid;
+  if (tid === undefined || tid === null || tid === '') {
+    return payload;
+  }
+  if (payload.TID === undefined && payload.tid === undefined) {
+    payload.TID = tid;
+  }
+  return payload;
+}
+
 export class FeslRouter extends EventEmitter {
   private handlers = new Map<string, FeslCommandHandler>();
   private sessionStore: SessionStore;
@@ -81,7 +97,8 @@ export class FeslRouter extends EventEmitter {
         packet.subsystem,
         packet.subtype,
         txn || 'Unknown',
-        `Unknown subsystem: ${packet.subsystem}`
+        `Unknown subsystem: ${packet.subsystem}`,
+        echoRequestTid({}, packet)
       );
       this.emit('handled', connection, packet);
       return;
@@ -99,9 +116,12 @@ export class FeslRouter extends EventEmitter {
 
       // If handler returned a payload object or packet
       const responseSubtype = (packet.subtype | 0x80000000) >>> 0;
-      const responsePayload = 'payload' in result && typeof result.payload === 'object'
-        ? (result as FeslPacket).payload
-        : (result as Record<string, any>);
+      const responsePayload = echoRequestTid(
+        'payload' in result && typeof result.payload === 'object'
+          ? (result as FeslPacket).payload
+          : (result as Record<string, any>),
+        packet
+      );
 
       console.log(`[FeslRouter] [${connection.id}] SEND ${packet.subsystem} (0x${responseSubtype.toString(16)}) TXN=${txn}:`, JSON.stringify(responsePayload));
       connection.sendPacket({
@@ -117,7 +137,8 @@ export class FeslRouter extends EventEmitter {
         packet.subsystem,
         packet.subtype,
         txn || 'Unknown',
-        [{ fieldName: 'server', fieldError: (err as Error).message || 'Internal server error', fieldErrorCode: 5000 }]
+        [{ fieldName: 'server', fieldError: (err as Error).message || 'Internal server error', fieldErrorCode: 5000 }],
+        echoRequestTid({}, packet)
       );
       this.emit('error', err as Error, connection, packet);
     }

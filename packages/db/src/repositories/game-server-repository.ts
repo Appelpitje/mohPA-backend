@@ -19,6 +19,12 @@ export interface CreateGameServerData {
   currentPlayers?: number;
   mapName?: string;
   gameMode?: string;
+  region?: string;
+  country?: string;
+  countryCode?: string;
+  city?: string;
+  ping?: number;
+  tickRate?: number;
   details?: Record<string, any>;
 }
 
@@ -36,6 +42,34 @@ export class GameServerRepository {
   constructor(private db: DbClient) {}
 
   public async register(data: CreateGameServerData): Promise<GameServer> {
+    const mergedDetails = {
+      ...(data.details || {}),
+      ...(data.region ? { region: data.region } : {}),
+      ...(data.country ? { country: data.country } : {}),
+      ...(data.countryCode ? { countryCode: data.countryCode } : {}),
+      ...(data.city ? { city: data.city } : {}),
+      ...(data.ping !== undefined ? { ping: data.ping } : {}),
+      ...(data.tickRate !== undefined ? { tickRate: data.tickRate } : {}),
+    };
+
+    const existing = await this.findByIpAndPort(data.ipAddress, data.port);
+    if (existing) {
+      await this.updateServerQuery(existing.id, {
+        isOnline: data.isOnline !== undefined ? data.isOnline : true,
+        name: data.name,
+        mapName: data.mapName,
+        gameMode: data.gameMode,
+        currentPlayers: data.currentPlayers,
+        maxPlayers: data.maxPlayers,
+        details: {
+          ...(existing.details || {}),
+          ...mergedDetails,
+        },
+        queryPort: data.queryPort,
+      });
+      return (await this.findById(existing.id)) || existing;
+    }
+
     const secretKey = data.secretKey || crypto.randomBytes(24).toString('hex');
     const isOnline = data.isOnline !== undefined ? data.isOnline : true;
     const sql = `
@@ -60,7 +94,7 @@ export class GameServerRepository {
       data.currentPlayers || 0,
       data.mapName || '',
       data.gameMode || '',
-      JSON.stringify(data.details || {})
+      JSON.stringify(mergedDetails)
     ];
 
     const result = await this.db.query(sql, params);
@@ -167,6 +201,10 @@ export class GameServerRepository {
       setClauses.push(`details = $${paramIndex++}`);
       params.push(JSON.stringify(queryResult.details));
     }
+    if (queryResult.queryPort !== undefined) {
+      setClauses.push(`query_port = $${paramIndex++}`);
+      params.push(queryResult.queryPort);
+    }
 
     params.push(id);
     const sql = `
@@ -256,6 +294,7 @@ export class GameServerRepository {
   }
 
   private mapServer(row: any): GameServer {
+    const details = this.parseJsonField(row.details);
     return {
       id: row.id,
       name: row.name,
@@ -272,7 +311,13 @@ export class GameServerRepository {
       mapName: row.map_name || '',
       gameMode: row.game_mode || '',
       subState: row.sub_state || 'LOBBY',
-      details: this.parseJsonField(row.details)
+      region: row.region || details.region,
+      country: row.country || details.country,
+      countryCode: row.country_code || details.countryCode,
+      city: row.city || details.city,
+      ping: details.ping !== undefined ? Number(details.ping) : undefined,
+      tickRate: details.tickRate !== undefined ? Number(details.tickRate) : undefined,
+      details,
     };
   }
 }

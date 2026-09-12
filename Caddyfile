@@ -1,3 +1,34 @@
+# GameSpy PT/ghttp (2004) calls motd/vercheck.asp and motd.asp over HTTP/1.0
+# on every MP menu action. A 308 to HTTPS makes Windows ghttp follow
+# Location: https://... and then stall on TLS until the request times out,
+# which freezes the UI. Never redirect :80 — answer with 200 + close.
+:80 {
+    log {
+        output stdout
+        format console
+    }
+    handle /motd/vercheck.asp* {
+        header Content-Type "text/plain"
+        header Connection "close"
+        respond "\\newver\\0" 200
+    }
+    handle /motd/motd.asp* {
+        header Content-Type "text/plain"
+        header Connection "close"
+        respond "Welcome to CentralSpy" 200
+    }
+    handle /motd/* {
+        header Content-Type "text/plain"
+        header Connection "close"
+        respond "\\newver\\0" 200
+    }
+    handle {
+        header Content-Type "text/plain"
+        header Connection "close"
+        respond "\\newver\\0" 200
+    }
+}
+
 centralspy.appelpitje.dev {
     handle /downloads/* {
         uri strip_prefix /downloads

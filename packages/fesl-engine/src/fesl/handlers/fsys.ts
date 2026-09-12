@@ -25,6 +25,10 @@ export async function handleFsys(ctx: FeslHandlerContext): Promise<Record<string
 
       const isServer = clientType === 'server' || clientType === 'dedicated';
       const theaterPort = isServer ? config.theaterServerPort : config.theaterClientPort;
+      // MOHPA (Jabba FESL) always connect()s messengerIp:messengerPort after Hello
+      // with no port==0 skip. Advertising the SSL 2.0 FESL port as messenger makes
+      // the client open a second 18020 session that is not a messenger protocol.
+      const messengerPort = connection.gameSlug === 'mohpa' ? 0 : config.messengerPort;
 
       return {
         TXN: FESL_TXN.HELLO,
@@ -37,7 +41,7 @@ export async function handleFsys(ctx: FeslHandlerContext): Promise<Record<string
         theaterPort,
         messengerHost: config.messengerHost,
         messengerIp: config.publicIp,
-        messengerPort: config.messengerPort,
+        messengerPort,
       };
     }
 

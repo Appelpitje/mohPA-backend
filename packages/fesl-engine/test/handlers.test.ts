@@ -4,7 +4,7 @@ import { RedisSessionStore } from '../src/session/redis-session-store.js';
 import { ApiClient } from '../src/api-client/api-client.js';
 import { FeslRouter } from '../src/fesl/router.js';
 import { FeslConnection } from '../src/network/connection.js';
-import { FeslPacket, FESL_SUBSYSTEMS, FESL_TXN } from '@centralspy/shared';
+import { FeslPacket, FESL_SUBSYSTEMS, FESL_TXN, decodePacket } from '@centralspy/shared';
 
 describe('FESL Subsystem Handlers & Router', () => {
   let sessionStore: RedisSessionStore;
@@ -64,6 +64,43 @@ describe('FESL Subsystem Handlers & Router', () => {
     expect(handledResponse['domainPartition.name']).toBe('eagames');
     expect(handledResponse.theaterPort).toBeDefined();
     expect(handledResponse.curTime).toBeDefined();
+  });
+
+  it('echoes TID on fsys.Hello so Jabba/MOHPA transactor can match the pending request', async () => {
+    const packet: FeslPacket = {
+      subsystem: FESL_SUBSYSTEMS.FSYS,
+      subtype: 0x00000000,
+      packetLength: 99,
+      payload: {
+        TXN: FESL_TXN.HELLO,
+        clientString: 'mohpa',
+        sku: '',
+        locale: 'en_US',
+        clientVersion: 1.2,
+        SDKVersion: 1,
+        TID: 1,
+      },
+    };
+
+    let handledResponse: any = null;
+    router.once('handled', (_conn, _req, res) => {
+      handledResponse = res;
+    });
+
+    await router.handlePacket(connection, packet);
+
+    expect(handledResponse).toBeDefined();
+    expect(handledResponse.TXN).toBe('Hello');
+    expect(handledResponse.TID).toBe(1);
+    expect(handledResponse.theaterIp).toBeDefined();
+    expect(handledResponse.theaterPort).toBeDefined();
+    expect(handledResponse.messengerIp).toBeDefined();
+    expect(handledResponse.messengerPort).toBe(0);
+
+    expect(sentPackets.length).toBeGreaterThan(0);
+    const decoded = decodePacket(sentPackets[0] as Buffer);
+    expect(decoded?.payload.TID).toBe(1);
+    expect(decoded?.payloadString).toMatch(/TID=1\n/);
   });
 
   it('handles fsys.Ping', async () => {

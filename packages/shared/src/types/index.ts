@@ -57,6 +57,12 @@ export interface GameServer {
   mapName?: string;
   gameMode?: string;
   subState?: string;
+  region?: string;
+  country?: string;
+  countryCode?: string;
+  city?: string;
+  ping?: number;
+  tickRate?: number;
   details?: Record<string, any>;
 }
 

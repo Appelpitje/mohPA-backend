@@ -6,6 +6,7 @@ import {
   getPacketArray,
   getPacketTxn,
 } from '../types.js';
+import { saveGsPreauth, toGsNumericId } from '../../gamespy/ticket-store.js';
 
 /**
  * Handles acct subsystem commands: Login, NuLogin, NuGetPersonas, GetPersonas,
@@ -60,23 +61,28 @@ export async function handleAcct(ctx: FeslHandlerContext): Promise<Record<string
 
       connection.attachSession(session);
 
+      const numericId = toGsNumericId(user.userId);
+      const nick = user.username || identifier;
+
       if (txn === FESL_TXN.NU_LOGIN) {
         return {
           TXN: FESL_TXN.NU_LOGIN,
           lkey: session.lkey,
-          userId: user.userId,
-          profileId: user.userId,
+          userId: numericId,
+          profileId: numericId,
           nuid: user.email || user.username,
-          displayName: user.username,
+          displayName: nick,
         };
       }
 
       return {
         TXN: FESL_TXN.LOGIN,
         lkey: session.lkey,
-        userId: user.userId,
-        profileId: user.userId,
-        displayName: user.username,
+        userId: numericId,
+        profileId: numericId,
+        displayName: nick,
+        name: nick,
+        uniquenick: nick,
         nuid: user.email || user.username,
       };
     }
@@ -252,6 +258,15 @@ export async function handleAcct(ctx: FeslHandlerContext): Promise<Record<string
     case FESL_TXN.GAME_SPY_PRE_AUTH: {
       const ticket = crypto.randomBytes(16).toString('hex');
       const challenge = crypto.randomBytes(16).toString('hex');
+      const session = connection.session;
+
+      saveGsPreauth({
+        ticket,
+        challenge,
+        lkey: session?.lkey || ticket,
+        userId: session?.userId || 1,
+        username: session?.username || session?.personaName || 'Player',
+      });
 
       return {
         TXN: FESL_TXN.GAME_SPY_PRE_AUTH,

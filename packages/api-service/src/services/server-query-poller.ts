@@ -5,7 +5,7 @@
  */
 
 import { GameServerRepository } from '@centralspy/db';
-import { queryGameServer } from '@centralspy/shared';
+import { queryGameServer, resolveIpLocation } from '@centralspy/shared';
 
 export class ServerQueryPoller {
   private timer: NodeJS.Timeout | null = null;
@@ -72,6 +72,15 @@ export class ServerQueryPoller {
           });
 
           if (res.online) {
+            const geo = resolveIpLocation(server.region || server.details?.region || server.countryCode || server.ipAddress);
+            const tickRate = Number(
+              res.rules?.sv_fps ||
+              res.rules?.tickrate ||
+              res.rules?.fps ||
+              server.tickRate ||
+              server.details?.tickRate ||
+              30
+            );
             await this.serverRepo.updateServerQuery(server.id, {
               isOnline: true,
               name: res.name || server.name,
@@ -84,6 +93,11 @@ export class ServerQueryPoller {
                 players: res.players,
                 rules: res.rules,
                 ping: res.ping,
+                tickRate,
+                region: server.region || server.details?.region || geo.region,
+                countryCode: server.countryCode || server.details?.countryCode || geo.countryCode,
+                country: server.country || server.details?.country || geo.country,
+                city: server.city || server.details?.city || geo.city,
                 queryProtocol: res.protocol,
                 queryPort: res.queryPort,
                 lastQueried: new Date().toISOString(),

@@ -113,7 +113,8 @@ export class FeslConnection {
     subsystem: string,
     requestSubtype: number,
     txn: string,
-    errorDetails: Array<{ fieldName: string; fieldError: string | number; fieldErrorCode?: number | string }> | string
+    errorDetails: Array<{ fieldName: string; fieldError: string | number; fieldErrorCode?: number | string }> | string,
+    extraFields?: Record<string, any>
   ): void {
     const errorContainer = typeof errorDetails === 'string'
       ? [{ fieldName: 'error', fieldError: errorDetails }]
@@ -122,6 +123,7 @@ export class FeslConnection {
     const payload: Record<string, any> = {
       TXN: txn,
       errorContainer,
+      ...extraFields,
     };
 
     const responseSubtype = (requestSubtype | 0x80000000) >>> 0;

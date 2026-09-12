@@ -3,7 +3,7 @@
  */
 
 import { FastifyPluginAsync } from 'fastify';
-import { getGameConfig, queryGameServer } from '@centralspy/shared';
+import { getGameConfig, queryGameServer, resolveIpLocation } from '@centralspy/shared';
 
 export const serverRoutes: FastifyPluginAsync = async (fastify) => {
   // Public server browser list
@@ -20,7 +20,22 @@ export const serverRoutes: FastifyPluginAsync = async (fastify) => {
       offset: query.offset ? parseInt(query.offset, 10) : 0
     };
 
-    const servers = await fastify.serverRepo.listServers(filter);
+    const rawServers = await fastify.serverRepo.listServers(filter);
+    const servers = rawServers.map((srv) => {
+      const geo = resolveIpLocation(srv.region || srv.details?.region || srv.countryCode || srv.ipAddress);
+      const ping = srv.ping ?? srv.details?.ping ?? geo.estimatedPing;
+      const tickRate = srv.tickRate ?? srv.details?.tickRate ?? (srv.details?.rules?.sv_fps ? Number(srv.details.rules.sv_fps) : 30);
+      return {
+        ...srv,
+        region: srv.region || srv.details?.region || geo.region,
+        countryCode: srv.countryCode || srv.details?.countryCode || geo.countryCode,
+        country: srv.country || srv.details?.country || geo.country,
+        city: srv.city || srv.details?.city || geo.city,
+        ping,
+        tickRate,
+      };
+    });
+
     return reply.send({
       servers,
       count: servers.length,
@@ -49,6 +64,15 @@ export const serverRoutes: FastifyPluginAsync = async (fastify) => {
       });
 
       if (queryResult.online) {
+        const geo = resolveIpLocation(server.region || server.details?.region || server.countryCode || server.ipAddress);
+        const tickRate = Number(
+          queryResult.rules?.sv_fps ||
+          queryResult.rules?.tickrate ||
+          queryResult.rules?.fps ||
+          server.tickRate ||
+          server.details?.tickRate ||
+          30
+        );
         await fastify.serverRepo.updateServerQuery(server.id, {
           isOnline: true,
           name: queryResult.name || server.name,
@@ -61,6 +85,11 @@ export const serverRoutes: FastifyPluginAsync = async (fastify) => {
             players: queryResult.players,
             rules: queryResult.rules,
             ping: queryResult.ping,
+            tickRate,
+            region: server.region || server.details?.region || geo.region,
+            countryCode: server.countryCode || server.details?.countryCode || geo.countryCode,
+            country: server.country || server.details?.country || geo.country,
+            city: server.city || server.details?.city || geo.city,
             queryProtocol: queryResult.protocol,
             queryPort: queryResult.queryPort,
             lastQueried: new Date().toISOString(),
@@ -70,8 +99,19 @@ export const serverRoutes: FastifyPluginAsync = async (fastify) => {
       }
     }
 
+    const geo = resolveIpLocation(server.region || server.details?.region || server.countryCode || server.ipAddress);
+    const enrichedServer = {
+      ...server,
+      region: server.region || server.details?.region || geo.region,
+      countryCode: server.countryCode || server.details?.countryCode || geo.countryCode,
+      country: server.country || server.details?.country || geo.country,
+      city: server.city || server.details?.city || geo.city,
+      ping: server.ping ?? server.details?.ping ?? geo.estimatedPing,
+      tickRate: server.tickRate ?? server.details?.tickRate ?? (server.details?.rules?.sv_fps ? Number(server.details.rules.sv_fps) : 30),
+    };
+
     return reply.send({
-      server,
+      server: enrichedServer,
       scoreboard: server.details?.players || [],
       rules: server.details?.rules || {}
     });
@@ -96,11 +136,25 @@ export const serverRoutes: FastifyPluginAsync = async (fastify) => {
     });
 
     if (queryResult.online) {
+      const geo = resolveIpLocation(server.region || server.details?.region || server.countryCode || server.ipAddress);
+      const tickRate = Number(
+        queryResult.rules?.sv_fps ||
+        queryResult.rules?.tickrate ||
+        queryResult.rules?.fps ||
+        server.tickRate ||
+        server.details?.tickRate ||
+        30
+      );
       const updatedDetails = {
         ...(server.details || {}),
         players: queryResult.players,
         rules: queryResult.rules,
         ping: queryResult.ping,
+        tickRate,
+        region: server.region || server.details?.region || geo.region,
+        countryCode: server.countryCode || server.details?.countryCode || geo.countryCode,
+        country: server.country || server.details?.country || geo.country,
+        city: server.city || server.details?.city || geo.city,
         queryProtocol: queryResult.protocol,
         queryPort: queryResult.queryPort,
         lastQueried: new Date().toISOString(),
@@ -147,7 +201,27 @@ export const serverRoutes: FastifyPluginAsync = async (fastify) => {
 
   // Register dedicated server (actively queries the server via UDP)
   fastify.post('/register', async (request, reply) => {
-    const { name, gameSlug, ipAddress, port, queryPort, isRanked, maxPlayers, skipQuery, queryTimeoutMs } = request.body as any || {};
+    const {
+      name,
+      gameSlug,
+      ipAddress,
+      port,
+      queryPort,
+      isRanked,
+      maxPlayers,
+      skipQuery,
+      queryTimeoutMs,
+      mapName: bodyMapName,
+      gameMode: bodyGameMode,
+      currentPlayers: bodyPlayers,
+      region: bodyRegion,
+      country: bodyCountry,
+      countryCode: bodyCountryCode,
+      city: bodyCity,
+      ping: bodyPing,
+      tickRate: bodyTickRate,
+      details: bodyDetails,
+    } = request.body as any || {};
 
     if (!name || !gameSlug || !ipAddress || !port) {
       return reply.code(400).send({ error: 'name, gameSlug, ipAddress, and port are required' });
@@ -169,7 +243,7 @@ export const serverRoutes: FastifyPluginAsync = async (fastify) => {
     let currentPlayers = 0;
     let resolvedMaxPlayers = maxPlayers ? Number(maxPlayers) : 64;
     let isOnline = false;
-    let serverDetails: Record<string, any> = {};
+    let serverDetails: Record<string, any> = { ...(bodyDetails || {}) };
 
     if (!skipQuery) {
       const queryResult = await queryGameServer({
@@ -197,6 +271,7 @@ export const serverRoutes: FastifyPluginAsync = async (fastify) => {
           resolvedMaxPlayers = queryResult.maxPlayers;
         }
         serverDetails = {
+          ...serverDetails,
           players: queryResult.players || [],
           rules: queryResult.rules || {},
           ping: queryResult.ping,
@@ -208,14 +283,39 @@ export const serverRoutes: FastifyPluginAsync = async (fastify) => {
         // Server did not answer query: enrolled as offline
         isOnline = false;
         serverDetails = {
+          ...serverDetails,
           queryError: queryResult.error || 'Server did not respond to UDP query probe',
           lastQueried: new Date().toISOString(),
         };
       }
     } else {
-      // Explicitly skipped query
       isOnline = true;
+      if (bodyMapName) mapName = String(bodyMapName);
+      if (bodyGameMode) gameMode = String(bodyGameMode);
+      if (bodyPlayers !== undefined) currentPlayers = Number(bodyPlayers);
     }
+
+    const geo = resolveIpLocation(bodyRegion || bodyCountryCode || targetIp);
+    const region = bodyRegion || serverDetails.region || geo.region;
+    const countryCode = bodyCountryCode || serverDetails.countryCode || geo.countryCode;
+    const country = bodyCountry || serverDetails.country || geo.country;
+    const city = bodyCity || serverDetails.city || geo.city;
+    const tickRate = Number(
+      bodyTickRate ||
+      serverDetails.tickRate ||
+      serverDetails.rules?.sv_fps ||
+      serverDetails.rules?.tickrate ||
+      serverDetails.rules?.fps ||
+      30
+    );
+    const ping = bodyPing !== undefined ? Number(bodyPing) : serverDetails.ping;
+
+    serverDetails.region = region;
+    serverDetails.countryCode = countryCode;
+    serverDetails.country = country;
+    if (city) serverDetails.city = city;
+    serverDetails.tickRate = tickRate;
+    if (ping !== undefined) serverDetails.ping = ping;
 
     const server = await fastify.serverRepo.register({
       name: serverName,
@@ -229,6 +329,12 @@ export const serverRoutes: FastifyPluginAsync = async (fastify) => {
       currentPlayers,
       mapName,
       gameMode,
+      region,
+      country,
+      countryCode,
+      city,
+      ping,
+      tickRate,
       details: serverDetails,
     });
 

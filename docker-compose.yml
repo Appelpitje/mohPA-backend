@@ -56,12 +56,27 @@ services:
       THEATER_CLIENT_PORT: 18275
       THEATER_SERVER_PORT: 18056
       PUBLIC_IP: ${PUBLIC_IP:-178.105.150.25}
+      DEDICATED_SERVER_IP: ${PUBLIC_IP:-178.105.150.25}
+      DEDICATED_GAME_PORT: 13200
+      DEDICATED_QUERY_PORT: 13300
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
     ports:
       - 18020:18020
-      - 18270:18270
+      - 18270:18667
+      - 6667:6667
+      - 18667:18667
       - 18051:18051
       - 18275:18275
       - 18056:18056
+      - 29900:29900
+      - 29901:29901
+      - 29910:29920
+      - 29920:29920
+      - 28900:28900
+      - 28910:28910
+      - 27900:27900
+      - 27900:27900/udp
 
   caddy:
     image: caddy:2-alpine

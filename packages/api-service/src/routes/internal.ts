@@ -60,9 +60,24 @@ export const internalRoutes: FastifyPluginAsync = async (fastify) => {
       return reply.code(400).send({ error: 'userId is required' });
     }
 
-    const personas = gameSlug
+    let personas = gameSlug
       ? await fastify.personaRepo.findByUserIdAndGame(userId, gameSlug)
       : await fastify.personaRepo.findByUserId(userId);
+
+    // Fallback: If user has no active personas yet, provide default persona using their username
+    if (personas.length === 0) {
+      const user = await fastify.userRepo.findById(userId);
+      if (user) {
+        personas = [{
+          id: user.id,
+          userId: user.id,
+          gameSlug: gameSlug || 'mohpa',
+          name: user.username,
+          isActive: !user.isBanned,
+          createdAt: user.createdAt
+        }];
+      }
+    }
 
     const enriched = await Promise.all(
       personas.map(async (p) => {
@@ -84,9 +99,24 @@ export const internalRoutes: FastifyPluginAsync = async (fastify) => {
       return reply.code(400).send({ error: 'name is required' });
     }
 
-    const persona = gameSlug
+    let persona = gameSlug
       ? await fastify.personaRepo.findByNameAndGame(name, gameSlug)
       : await fastify.personaRepo.findByName(name);
+
+    // Fallback: If not found, check registered user
+    if (!persona) {
+      const user = await fastify.userRepo.findByUsername(name);
+      if (user) {
+        persona = {
+          id: user.id,
+          userId: user.id,
+          gameSlug: gameSlug || 'mohpa',
+          name: user.username,
+          isActive: !user.isBanned,
+          createdAt: user.createdAt
+        };
+      }
+    }
 
     if (!persona) {
       return reply.code(404).send({ error: 'Persona not found' });

@@ -186,6 +186,59 @@ export class MemoryDbClient implements DbClient {
       });
     }
 
+    // Handle leaderboard join from users
+    if (tableName === 'users' && sql.toLowerCase().includes('personas')) {
+      const personasTable = this.tables.get('personas') || [];
+      const statsTable = this.tables.get('persona_stats') || [];
+
+      const targetGameParam = params.find(p => typeof p === 'string');
+      const targetGame = targetGameParam ? String(targetGameParam).toLowerCase() : 'mohpa';
+
+      const combined: Array<Record<string, any>> = [];
+      for (const user of rows) {
+        if (user.is_banned) continue;
+        const userPersonas = personasTable.filter(
+          p => p.user_id === user.id && p.game_slug?.toLowerCase() === targetGame && p.is_active !== false
+        );
+
+        if (userPersonas.length === 0) {
+          combined.push({
+            ...user,
+            persona_id: user.id,
+            score: 0,
+            kills: 0,
+            deaths: 0,
+            wins: 0,
+            losses: 0,
+            time_played_seconds: 0,
+            custom_stats: {},
+            persona_name: user.username,
+            name: user.username,
+            user_id: user.id,
+            game_slug: targetGame,
+            created_at: user.created_at
+          });
+        } else {
+          for (const p of userPersonas) {
+            const stats = statsTable.find(s => s.persona_id === p.id) || {
+              score: 0, kills: 0, deaths: 0, wins: 0, losses: 0, time_played_seconds: 0, custom_stats: {}
+            };
+            combined.push({
+              ...user,
+              ...stats,
+              persona_id: p.id,
+              persona_name: p.name,
+              name: p.name,
+              user_id: user.id,
+              game_slug: p.game_slug,
+              created_at: p.created_at || user.created_at
+            });
+          }
+        }
+      }
+      rows = combined;
+    }
+
     // Handle leaderboard join
     if (tableName === 'persona_stats' && sql.toLowerCase().includes('personas')) {
       const personasTable = this.tables.get('personas') || [];

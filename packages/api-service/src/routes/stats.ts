@@ -16,8 +16,8 @@ export const statsRoutes: FastifyPluginAsync = async (fastify) => {
       return reply.code(400).send({ error: `Unknown game slug: ${game_slug}` });
     }
 
-    const sort = (query.sort || 'score') as 'score' | 'kills' | 'wins';
-    const limit = query.limit ? parseInt(query.limit, 10) : 50;
+    const sort = (query.sort || 'score') as 'score' | 'kills' | 'wins' | 'playtime';
+    const limit = query.limit ? parseInt(query.limit, 10) : 100;
     const offset = query.offset ? parseInt(query.offset, 10) : 0;
 
     const leaderboard = await fastify.statsRepo.getLeaderboard(config.slug, sort, limit, offset);
@@ -51,6 +51,22 @@ export const statsRoutes: FastifyPluginAsync = async (fastify) => {
           persona = found;
           break;
         }
+      }
+    }
+
+    // Fallback: If not found in personas, check if registered user exists by username
+    if (!persona) {
+      const user = await fastify.userRepo.findByUsername(name);
+      if (user) {
+        const config = getGameConfig(gameSlug || 'mohpa') || listGameConfigs()[0];
+        persona = {
+          id: user.id,
+          userId: user.id,
+          gameSlug: config.slug,
+          name: user.username,
+          isActive: !user.isBanned,
+          createdAt: user.createdAt
+        };
       }
     }
 

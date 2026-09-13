@@ -113,22 +113,36 @@ export class StatsRepository {
 
   public async getLeaderboard(
     gameSlug: string,
-    sortBy: 'score' | 'kills' | 'wins' = 'score',
+    sortBy: 'score' | 'kills' | 'wins' | 'playtime' = 'score',
     limit = 50,
     offset = 0
   ): Promise<LeaderboardEntry[]> {
-    const validSorts = {
-      score: 'ps.score DESC',
-      kills: 'ps.kills DESC',
-      wins: 'ps.wins DESC'
+    const validSorts: Record<string, string> = {
+      score: 'score DESC, u.created_at ASC',
+      kills: 'kills DESC, u.created_at ASC',
+      wins: 'wins DESC, u.created_at ASC',
+      playtime: 'time_played_seconds DESC, u.created_at ASC'
     };
-    const orderClause = validSorts[sortBy] || 'ps.score DESC';
+    const orderClause = validSorts[sortBy] || validSorts.score;
 
     const sql = `
-      SELECT ps.*, p.name as persona_name, p.user_id, p.game_slug
-      FROM persona_stats ps
-      JOIN personas p ON ps.persona_id = p.id
-      WHERE p.game_slug = $1 AND p.is_active = TRUE
+      SELECT 
+        COALESCE(p.id, u.id) as persona_id,
+        COALESCE(ps.score, 0) as score,
+        COALESCE(ps.kills, 0) as kills,
+        COALESCE(ps.deaths, 0) as deaths,
+        COALESCE(ps.wins, 0) as wins,
+        COALESCE(ps.losses, 0) as losses,
+        COALESCE(ps.time_played_seconds, 0) as time_played_seconds,
+        COALESCE(ps.custom_stats, '{}'::jsonb) as custom_stats,
+        COALESCE(p.name, u.username) as persona_name,
+        COALESCE(p.name, u.username) as name,
+        u.id as user_id,
+        COALESCE(p.game_slug, $1) as game_slug
+      FROM users u
+      LEFT JOIN personas p ON p.user_id = u.id AND p.game_slug = $1 AND p.is_active = TRUE
+      LEFT JOIN persona_stats ps ON ps.persona_id = p.id
+      WHERE u.is_banned = FALSE
       ORDER BY ${orderClause}
       LIMIT $2 OFFSET $3
     `;

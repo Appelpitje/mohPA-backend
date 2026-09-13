@@ -160,6 +160,19 @@ describe('Database Repositories (In-Memory Engine)', () => {
       expect(leaderboard[0].personaName).toBe('ApexReaper');
       expect(leaderboard[0].name).toBe('ApexReaper');
 
+      // Create a registered user who has not deployed a persona or played yet
+      const recruit = await userRepo.create({
+        username: 'RecruitCadet',
+        email: 'recruit@example.com',
+        passwordHash: 'hash123'
+      });
+
+      const fullLeaderboard = await statsRepo.getLeaderboard('mohpa', 'score');
+      expect(fullLeaderboard.length).toBe(2);
+      expect(fullLeaderboard[0].name).toBe('ApexReaper');
+      expect(fullLeaderboard[1].name).toBe('RecruitCadet');
+      expect(fullLeaderboard[1].score).toBe(0);
+
       const match = await statsRepo.recordMatch({
         gameSlug: 'mohpa',
         mapName: 'Suez Canal',

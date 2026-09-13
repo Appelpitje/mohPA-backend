@@ -243,7 +243,20 @@ describe('CentralSpy API Service Integration Tests', () => {
   });
 
   describe('Stats Routes (/api/v1/stats)', () => {
-    it('GET /api/v1/stats/leaderboard/:game_slug returns leaderboard', async () => {
+    it('GET /api/v1/stats/leaderboard/:game_slug returns leaderboard including registered users', async () => {
+      // Register a second user who has not created a persona yet
+      const regRes = await app.inject({
+        method: 'POST',
+        url: '/api/v1/auth/register',
+        payload: {
+          username: 'RecruitPlayer',
+          email: 'recruit@centralspy.net',
+          password: 'Password123!',
+          countryCode: 'CA',
+          dob: '1998-08-08'
+        }
+      });
+
       const res = await app.inject({
         method: 'GET',
         url: '/api/v1/stats/leaderboard/mohpa?sort=score'
@@ -253,6 +266,8 @@ describe('CentralSpy API Service Integration Tests', () => {
       const body = JSON.parse(res.body);
       expect(body.gameSlug).toBe('mohpa');
       expect(Array.isArray(body.leaderboard)).toBe(true);
+      expect(body.leaderboard.some((p: any) => p.name === 'RecruitPlayer')).toBe(true);
+      expect(body.leaderboard.some((p: any) => p.name === 'Col_Voss')).toBe(true);
     });
 
     it('GET /api/v1/stats/players/:name resolves player stats', async () => {
@@ -264,6 +279,18 @@ describe('CentralSpy API Service Integration Tests', () => {
       expect(res.statusCode).toBe(200);
       const body = JSON.parse(res.body);
       expect(body.persona.name).toBe('Col_Voss');
+    });
+
+    it('GET /api/v1/stats/players/:name resolves registered user even without explicit persona', async () => {
+      const res = await app.inject({
+        method: 'GET',
+        url: '/api/v1/stats/players/RecruitPlayer?game_slug=mohpa'
+      });
+
+      expect(res.statusCode).toBe(200);
+      const body = JSON.parse(res.body);
+      expect(body.persona.name).toBe('RecruitPlayer');
+      expect(body.stats.score).toBe(0);
     });
   });
 

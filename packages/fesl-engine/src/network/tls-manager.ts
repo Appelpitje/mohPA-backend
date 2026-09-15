@@ -201,7 +201,7 @@ function createSelfSignedX509Pem(commonName: string, publicKeyPem: string, priva
     'eagames.fesl.ea.com',
     'demangler.ea.com',
     'centralspy.ea.com',
-    'centralspy.appelpitje.dev',
+    'portal.mohpa.net',
     'localhost',
   ];
   // Deduplicate DNS names

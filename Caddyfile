@@ -7,6 +7,12 @@
         output stdout
         format console
     }
+    handle /api* {
+        reverse_proxy api-service:3000
+    }
+    handle /ws* {
+        reverse_proxy api-service:3000
+    }
     handle /motd/vercheck.asp* {
         header Content-Type "text/plain"
         header Connection "close"

@@ -143,6 +143,21 @@ export const authRoutes: FastifyPluginAsync = async (fastify) => {
     });
   });
 
+  // Password reset request (CAPTCHA-gated; does not disclose whether the email exists)
+  fastify.post('/forgot-password', async (request, reply) => {
+    const { email, turnstileToken } = request.body as any || {};
+
+    if (!(await requireTurnstile(fastify, request, reply, turnstileToken))) {
+      return;
+    }
+
+    if (!email || typeof email !== 'string' || !email.includes('@')) {
+      return reply.code(400).send({ error: 'A valid email address is required' });
+    }
+
+    return reply.send({ ok: true });
+  });
+
   // Get Current User Profile & Entitlements
   fastify.get('/me', { preHandler: [fastify.authenticate] }, async (request, reply) => {
     const userId = (request.user as any).id;

@@ -91,6 +91,37 @@ describe('Auth routes require Cloudflare Turnstile when configured', () => {
     expect(JSON.parse(res.body).token).toBeDefined();
   });
 
+  it('POST /api/v1/auth/forgot-password rejects missing CAPTCHA token', async () => {
+    const res = await app.inject({
+      method: 'POST',
+      url: '/api/v1/auth/forgot-password',
+      payload: { email: 'captcha@mohpa.net' },
+    });
+
+    expect(res.statusCode).toBe(400);
+    expect(JSON.parse(res.body).error).toBe('CAPTCHA verification is required');
+    expect(fetchMock).not.toHaveBeenCalled();
+  });
+
+  it('POST /api/v1/auth/forgot-password succeeds after a valid CAPTCHA token', async () => {
+    fetchMock.mockResolvedValueOnce({
+      ok: true,
+      json: async () => ({ success: true }),
+    });
+
+    const res = await app.inject({
+      method: 'POST',
+      url: '/api/v1/auth/forgot-password',
+      payload: {
+        email: 'captcha@mohpa.net',
+        turnstileToken: 'XXXX.DUMMY.TOKEN.XXXX',
+      },
+    });
+
+    expect(res.statusCode).toBe(200);
+    expect(JSON.parse(res.body).ok).toBe(true);
+  });
+
   it('POST /api/v1/auth/login succeeds after a valid CAPTCHA token', async () => {
     fetchMock.mockResolvedValueOnce({
       ok: true,

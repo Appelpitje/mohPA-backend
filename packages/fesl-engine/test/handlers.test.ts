@@ -17,6 +17,32 @@ describe('FESL Subsystem Handlers & Router', () => {
   beforeEach(() => {
     sessionStore = new RedisSessionStore('redis://127.0.0.1:19999');
     apiClient = new ApiClient();
+    apiClient.validateCredentials = async (id: string, pw?: string) => ({
+      valid: pw === 'password123' || pw === 'password',
+      user: {
+        userId: 1,
+        username: id,
+        email: `${id}@mohpa.local`,
+        country: 'US',
+        language: 'en',
+        dobDay: 1,
+        dobMonth: 1,
+        dobYear: 1990,
+        zipCode: '10001',
+        isAdmin: true,
+        isBanned: false,
+      },
+    });
+    apiClient.getPersonas = async (userId: string | number) => [
+      { personaId: 101, userId, name: 'TommyConlin', gameSlug: 'mohpa', isActive: true },
+    ];
+    apiClient.getPersonaByName = async (name: string, gameSlug?: string) => ({
+      personaId: 101,
+      userId: 1,
+      name,
+      gameSlug: gameSlug || 'mohpa',
+      isActive: true,
+    });
     router = new FeslRouter(sessionStore, apiClient);
 
     sentPackets = [];

@@ -148,14 +148,24 @@ export class GpcmServer {
     const clientChallenge = fields.challenge || '';
     const clientResponse = fields.response || '';
     const preauth = authtoken ? getGsPreauth(authtoken) : undefined;
-    const partnerChallenge = preauth?.challenge || clientChallenge;
-    const nick = preauth?.username || fields.uniquenick || fields.user || 'Appelpitje';
-    const userId = toGsNumericId(preauth?.userId || nick);
-    const lkey = preauth?.lkey || crypto.randomBytes(12).toString('hex');
 
-    if (!preauth) {
-      console.warn(`[GpcmServer] [${remote}] Unknown authtoken=${authtoken} — accepting anyway`);
+    if (!preauth || !preauth.username) {
+      console.warn(`[GpcmServer] [${remote}] Invalid, missing or unauthenticated authtoken=${authtoken} — rejecting login`);
+      socket.write(encodeGs({
+        error: '',
+        err: 260,
+        errmsg: 'Invalid login or session expired',
+        id: fields.id || '1',
+        fatal: '',
+      }), 'ascii');
+      socket.end();
+      return;
     }
+
+    const partnerChallenge = preauth.challenge || clientChallenge;
+    const nick = preauth.username;
+    const userId = toGsNumericId(preauth.userId || nick);
+    const lkey = preauth.lkey || crypto.randomBytes(12).toString('hex');
 
     const user = authtoken || nick;
     const expected = gpClientResponse(partnerChallenge, user, clientChallenge, serverChallenge);

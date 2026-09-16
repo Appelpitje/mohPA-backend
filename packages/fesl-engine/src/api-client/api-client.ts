@@ -10,9 +10,6 @@ export interface ValidateAuthResponse {
 export class ApiClient {
   private baseUrl: string;
   private apiKey: string;
-  // Fallback mock accounts for standalone or offline testing
-  private mockUsers = new Map<string, UserAccountInfo>();
-  private mockPersonas = new Map<string, PersonaInfo[]>();
 
   constructor(
     baseUrl: string = config.apiServiceUrl,
@@ -20,47 +17,11 @@ export class ApiClient {
   ) {
     this.baseUrl = baseUrl.replace(/\/$/, '');
     this.apiKey = apiKey;
-    this.seedMockData();
-  }
-
-  private seedMockData(): void {
-    const defaultUser: UserAccountInfo = {
-      userId: 1,
-      username: 'admin',
-      email: 'admin@mohpa.local',
-      country: 'US',
-      language: 'en',
-      dobDay: 1,
-      dobMonth: 1,
-      dobYear: 1990,
-      zipCode: '10001',
-      isAdmin: true,
-      isBanned: false,
-    };
-    this.mockUsers.set('1', defaultUser);
-    this.mockUsers.set('admin', defaultUser);
-    this.mockUsers.set('admin@mohpa.local', defaultUser);
-
-    this.mockPersonas.set('1', [
-      {
-        personaId: 101,
-        userId: 1,
-        name: 'TommyConlin',
-        gameSlug: 'mohpa',
-        isActive: true,
-      },
-      {
-        personaId: 102,
-        userId: 1,
-        name: 'PacificMarine',
-        gameSlug: 'mohpa',
-        isActive: true,
-      },
-    ]);
   }
 
   /**
-   * Validates user credentials via api-service internal IPC endpoint or offline fallback.
+   * Validates user credentials via api-service internal IPC endpoint.
+   * Returns valid: false if credentials are wrong or api-service is unreachable.
    */
   public async validateCredentials(
     identifier: string,
@@ -83,7 +44,7 @@ export class ApiClient {
         const data = await res.json() as any;
         const userObj: UserAccountInfo | undefined = data.user
           ? {
-              userId: data.user.userId || data.user.id || 1,
+              userId: data.user.userId || data.user.id,
               username: data.user.username,
               email: data.user.email,
               country: data.user.countryCode || data.user.country || 'US',
@@ -97,17 +58,12 @@ export class ApiClient {
             }
           : undefined;
 
-        if (data.personas && Array.isArray(data.personas) && userObj) {
-          this.mockPersonas.set(String(userObj.userId), data.personas);
-        }
-
         return {
           valid: Boolean(data.valid),
           user: userObj,
           error: data.error,
         };
       } else {
-        // API service is online and rejected credentials (e.g. 401 Invalid credentials)
         const data = await res.json().catch(() => ({})) as any;
         return {
           valid: false,
@@ -115,26 +71,10 @@ export class ApiClient {
         };
       }
     } catch (err) {
-      // API service offline / unreachable: fallback to mock credentials for local testing
-      console.warn(`[ApiClient] Failed to reach api-service at ${this.baseUrl}:`, (err as Error).message);
-
-      // Offline / dev fallback for local tests
-      const user = this.mockUsers.get(identifier.toLowerCase()) || {
-        userId: Math.abs(hashString(identifier)) % 100000 || 1,
-        username: identifier,
-        email: `${identifier}@mohpa.local`,
-        country: 'US',
-        language: 'en',
-        dobDay: 15,
-        dobMonth: 6,
-        dobYear: 1995,
-        isAdmin: false,
-        isBanned: false,
-      };
-
+      console.error(`[ApiClient] Failed to reach api-service at ${this.baseUrl}:`, (err as Error).message);
       return {
-        valid: true,
-        user,
+        valid: false,
+        error: 'Authentication service unavailable',
       };
     }
   }
@@ -162,23 +102,11 @@ export class ApiClient {
         const personas: PersonaInfo[] = Array.isArray(data) ? data : data.personas || [];
         return personas;
       }
-    } catch {}
-
-    // Fallback: check mock personas or create default persona
-    const list = this.mockPersonas.get(userIdStr);
-    if (list && list.length > 0) {
-      return gameSlug ? list.filter((p) => !p.gameSlug || p.gameSlug === gameSlug) : list;
+    } catch (err) {
+      console.error(`[ApiClient] Failed to get personas for userId ${userIdStr}:`, (err as Error).message);
     }
 
-    // Default soldier for any user
-    const defaultPersona: PersonaInfo = {
-      personaId: parseInt(userIdStr, 10) * 100 + 1,
-      userId,
-      name: `Player_${userIdStr}`,
-      gameSlug: gameSlug || 'mohpa',
-      isActive: true,
-    };
-    return [defaultPersona];
+    return [];
   }
 
   /**
@@ -198,21 +126,11 @@ export class ApiClient {
       if (res.ok) {
         return (await res.json()) as PersonaInfo;
       }
-    } catch {}
-
-    // Fallback lookup
-    for (const personas of this.mockPersonas.values()) {
-      const found = personas.find((p) => p.name.toLowerCase() === name.toLowerCase());
-      if (found) return found;
+    } catch (err) {
+      console.error(`[ApiClient] Failed to lookup persona ${name}:`, (err as Error).message);
     }
 
-    return {
-      personaId: Math.abs(hashString(name)) % 100000 || 101,
-      userId: 1,
-      name,
-      gameSlug: gameSlug || 'mohpa',
-      isActive: true,
-    };
+    return null;
   }
 
   /**
@@ -228,22 +146,11 @@ export class ApiClient {
       if (res.ok) {
         return (await res.json()) as UserAccountInfo;
       }
-    } catch {}
+    } catch (err) {
+      console.error(`[ApiClient] Failed to get account details for userId ${userIdStr}:`, (err as Error).message);
+    }
 
-    const user = this.mockUsers.get(userIdStr);
-    if (user) return user;
-
-    return {
-      userId,
-      username: `User_${userIdStr}`,
-      email: `user${userIdStr}@mohpa.local`,
-      country: 'US',
-      language: 'en',
-      dobDay: 1,
-      dobMonth: 1,
-      dobYear: 1990,
-      zipCode: '90210',
-    };
+    return null;
   }
 
   /**
@@ -265,13 +172,11 @@ export class ApiClient {
         signal: AbortSignal.timeout(3000),
       });
       if (res.ok) return true;
-    } catch {}
-
-    const user = this.mockUsers.get(userIdStr);
-    if (user) {
-      Object.assign(user, updates);
+    } catch (err) {
+      console.error(`[ApiClient] Failed to update account details for userId ${userIdStr}:`, (err as Error).message);
     }
-    return true;
+
+    return false;
   }
 
   /**
@@ -315,13 +220,11 @@ export class ApiClient {
           secretKey: data.secretKey,
         };
       }
-    } catch {}
+    } catch (err) {
+      console.error(`[ApiClient] Failed to register game server:`, (err as Error).message);
+    }
 
-    // Mock fallback
-    return {
-      serverId: `mock_server_${Math.abs(hashString(serverData.name)) % 10000}`,
-      secretKey: `mock_secret_${Math.random().toString(36).substring(2, 10)}`,
-    };
+    return null;
   }
 
   /**

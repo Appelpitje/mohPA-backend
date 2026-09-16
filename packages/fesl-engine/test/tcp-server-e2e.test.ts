@@ -12,6 +12,25 @@ describe('TCP / TLS Server End-to-End Test', () => {
 
   beforeAll(async () => {
     server = new FeslEngineServer();
+    server.apiClient.validateCredentials = async (id: string, pw?: string) => ({
+      valid: true,
+      user: {
+        userId: 4935,
+        username: id,
+        email: `${id}@mohpa.local`,
+        country: 'US',
+        language: 'en',
+        dobDay: 1,
+        dobMonth: 1,
+        dobYear: 1990,
+        zipCode: '10001',
+        isAdmin: false,
+        isBanned: false,
+      },
+    });
+    server.apiClient.getPersonas = async (userId: string | number) => [
+      { personaId: 493501, userId, name: `Player_${userId}`, gameSlug: 'mohpa', isActive: true },
+    ];
     await server.start([
       { port: TEST_FESL_CLIENT_PORT, isTls: true, name: 'Test FESL Client (TLS)' },
       { port: TEST_FESL_SERVER_PORT, isTls: true, name: 'Test FESL Server (TLS)' },

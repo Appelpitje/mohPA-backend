@@ -178,7 +178,15 @@ export async function handleAcct(ctx: FeslHandlerContext): Promise<Record<string
     }
 
     case FESL_TXN.GET_SUB_ACCOUNTS: {
-      const username = connection.session?.username || 'player';
+      if (!connection.session) {
+        return {
+          TXN: FESL_TXN.GET_SUB_ACCOUNTS,
+          errorContainer: [
+            { fieldName: 'session', fieldError: 'Not authenticated', fieldErrorCode: 2001 },
+          ],
+        };
+      }
+      const username = connection.session.username || 'player';
       return {
         TXN: FESL_TXN.GET_SUB_ACCOUNTS,
         subAccounts: [username],
@@ -187,7 +195,15 @@ export async function handleAcct(ctx: FeslHandlerContext): Promise<Record<string
     }
 
     case FESL_TXN.GET_ACCOUNT: {
-      const userId = connection.session?.userId || 1;
+      if (!connection.session) {
+        return {
+          TXN: FESL_TXN.GET_ACCOUNT,
+          errorContainer: [
+            { fieldName: 'session', fieldError: 'Not authenticated', fieldErrorCode: 2001 },
+          ],
+        };
+      }
+      const userId = connection.session.userId;
       const user = await apiClient.getAccountDetails(userId);
 
       return {
@@ -231,22 +247,26 @@ export async function handleAcct(ctx: FeslHandlerContext): Promise<Record<string
         for (const req of requestedUsers) {
           const userName = typeof req === 'string' ? req : req.userName || req.name || 'Player';
           const persona = await apiClient.getPersonaByName(userName, connection.gameSlug);
-          results.push({
-            userName,
-            userId: persona?.personaId || 101,
-            masterUserId: persona?.userId || 1,
-            namespace: '',
-          });
+          if (persona) {
+            results.push({
+              userName,
+              userId: persona.personaId,
+              masterUserId: persona.userId,
+              namespace: '',
+            });
+          }
         }
       } else {
         const singleName = getPacketString(packet, 'userInfo.0.userName') || getPacketString(packet, 'name') || 'Player';
         const persona = await apiClient.getPersonaByName(singleName, connection.gameSlug);
-        results.push({
-          userName: singleName,
-          userId: persona?.personaId || 101,
-          masterUserId: persona?.userId || 1,
-          namespace: '',
-        });
+        if (persona) {
+          results.push({
+            userName: singleName,
+            userId: persona.personaId,
+            masterUserId: persona.userId,
+            namespace: '',
+          });
+        }
       }
 
       return {
@@ -256,16 +276,25 @@ export async function handleAcct(ctx: FeslHandlerContext): Promise<Record<string
     }
 
     case FESL_TXN.GAME_SPY_PRE_AUTH: {
+      const session = connection.session;
+      if (!session) {
+        return {
+          TXN: FESL_TXN.GAME_SPY_PRE_AUTH,
+          errorContainer: [
+            { fieldName: 'session', fieldError: 'Not authenticated', fieldErrorCode: 2001 },
+          ],
+        };
+      }
+
       const ticket = crypto.randomBytes(16).toString('hex');
       const challenge = crypto.randomBytes(16).toString('hex');
-      const session = connection.session;
 
       saveGsPreauth({
         ticket,
         challenge,
-        lkey: session?.lkey || ticket,
-        userId: session?.userId || 1,
-        username: session?.username || session?.personaName || 'Player',
+        lkey: session.lkey || ticket,
+        userId: session.userId,
+        username: session.username || session.personaName || 'Player',
       });
 
       return {

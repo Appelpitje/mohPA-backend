@@ -36,10 +36,6 @@
 }
 
 backend.mohpa.net {
-    reverse_proxy api-service:3000
-}
-
-centralspy.appelpitje.dev {
     handle /downloads/* {
         uri strip_prefix /downloads
         root * /opt/mohpa

@@ -13,6 +13,14 @@
     handle /ws* {
         reverse_proxy api-service:3000
     }
+    handle /news.xml* {
+        header Connection "close"
+        reverse_proxy api-service:3000
+    }
+    handle /news* {
+        header Connection "close"
+        reverse_proxy api-service:3000
+    }
     handle /motd/vercheck.asp* {
         header Content-Type "text/plain"
         header Connection "close"

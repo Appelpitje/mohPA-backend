@@ -24,7 +24,8 @@ export const DEFAULT_NEWS_ITEMS: NewsItem[] = [
     month: 9,
     day: 16,
     title: 'mohPA Revival Launch Day',
-    content: 'Launch day of the mohPA revival! Dedicated servers, stats, and online multiplayer are officially live. Visit https://mohpa.net for downloads, guides, and server browser.',
+    content:
+      'Launch day of the mohPA revival! Dedicated servers, stats, and online multiplayer are officially live.\nVisit https://mohpa.net for downloads, guides, and server browser.',
     link: 'https://mohpa.net',
     date: '2026-09-16'
   }

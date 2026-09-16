@@ -228,6 +228,7 @@ describe('mohPA API Service Integration Tests', () => {
       const body = JSON.parse(res.body);
       expect(body.servers.length).toBeGreaterThan(0);
       expect(body.servers[0].mapName).toBe('Henderson Airfield');
+      expect(body.servers[0].secretKey).toBeUndefined();
     });
 
     it('GET /api/v1/servers/:id returns server detail', async () => {
@@ -239,6 +240,7 @@ describe('mohPA API Service Integration Tests', () => {
       expect(res.statusCode).toBe(200);
       const body = JSON.parse(res.body);
       expect(body.server.name).toBe('Pacific Theater Official Server');
+      expect(body.server.secretKey).toBeUndefined();
     });
   });
 

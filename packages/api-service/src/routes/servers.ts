@@ -5,6 +5,11 @@
 import { FastifyPluginAsync } from 'fastify';
 import { getGameConfig, queryGameServer, resolveIpLocation } from '@mohpa/shared';
 
+function toPublicServer<T extends { secretKey?: string }>(server: T): Omit<T, 'secretKey'> {
+  const { secretKey: _secretKey, ...rest } = server;
+  return rest;
+}
+
 export const serverRoutes: FastifyPluginAsync = async (fastify) => {
   // Public server browser list
   fastify.get('/', async (request, reply) => {
@@ -25,7 +30,7 @@ export const serverRoutes: FastifyPluginAsync = async (fastify) => {
       const geo = resolveIpLocation(srv.region || srv.details?.region || srv.countryCode || srv.ipAddress);
       const ping = srv.ping ?? srv.details?.ping ?? geo.estimatedPing;
       const tickRate = srv.tickRate ?? srv.details?.tickRate ?? (srv.details?.rules?.sv_fps ? Number(srv.details.rules.sv_fps) : 30);
-      return {
+      return toPublicServer({
         ...srv,
         region: srv.region || srv.details?.region || geo.region,
         countryCode: srv.countryCode || srv.details?.countryCode || geo.countryCode,
@@ -33,7 +38,7 @@ export const serverRoutes: FastifyPluginAsync = async (fastify) => {
         city: srv.city || srv.details?.city || geo.city,
         ping,
         tickRate,
-      };
+      });
     });
 
     return reply.send({
@@ -100,7 +105,7 @@ export const serverRoutes: FastifyPluginAsync = async (fastify) => {
     }
 
     const geo = resolveIpLocation(server.region || server.details?.region || server.countryCode || server.ipAddress);
-    const enrichedServer = {
+    const enrichedServer = toPublicServer({
       ...server,
       region: server.region || server.details?.region || geo.region,
       countryCode: server.countryCode || server.details?.countryCode || geo.countryCode,
@@ -108,7 +113,7 @@ export const serverRoutes: FastifyPluginAsync = async (fastify) => {
       city: server.city || server.details?.city || geo.city,
       ping: server.ping ?? server.details?.ping ?? geo.estimatedPing,
       tickRate: server.tickRate ?? server.details?.tickRate ?? (server.details?.rules?.sv_fps ? Number(server.details.rules.sv_fps) : 30),
-    };
+    });
 
     return reply.send({
       server: enrichedServer,
@@ -174,7 +179,7 @@ export const serverRoutes: FastifyPluginAsync = async (fastify) => {
       return reply.send({
         success: true,
         online: true,
-        server: updatedServer,
+        server: updatedServer ? toPublicServer(updatedServer) : updatedServer,
         scoreboard: queryResult.players,
         rules: queryResult.rules,
         ping: queryResult.ping,
@@ -194,7 +199,7 @@ export const serverRoutes: FastifyPluginAsync = async (fastify) => {
         success: false,
         online: false,
         error: queryResult.error || 'Server is offline or unreachable',
-        server: updatedServer,
+        server: updatedServer ? toPublicServer(updatedServer) : updatedServer,
       });
     }
   });
@@ -339,7 +344,7 @@ export const serverRoutes: FastifyPluginAsync = async (fastify) => {
     });
 
     return reply.code(201).send({
-      server,
+      server: toPublicServer(server),
       secretKey: server.secretKey,
       queried,
     });

@@ -375,6 +375,7 @@ describe('mohPA API Service Full REST & IPC Test Suite', () => {
       expect(body.servers.length).toBeGreaterThan(0);
       expect(body.servers[0].name).toBe('EU Official 2142 Titan');
       expect(body.servers[0].mapName).toBe('Minsk');
+      expect(body.servers[0].secretKey).toBeUndefined();
     });
 
     it('GET /api/v1/servers/:id returns server detail', async () => {
@@ -387,6 +388,7 @@ describe('mohPA API Service Full REST & IPC Test Suite', () => {
       const body = JSON.parse(res.body);
       expect(body.server.id).toBe(serverId);
       expect(body.server.name).toBe('EU Official 2142 Titan');
+      expect(body.server.secretKey).toBeUndefined();
     });
   });
 

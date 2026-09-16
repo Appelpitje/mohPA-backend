@@ -17,7 +17,7 @@ export const adminRoutes: FastifyPluginAsync = async (fastify) => {
     return reply.send({
       inspector: inspectorStats,
       onlineServersCount: onlineServers.length,
-      onlineServers
+      onlineServers: onlineServers.map(({ secretKey: _secretKey, ...server }) => server),
     });
   });
 
@@ -143,8 +143,9 @@ export const adminRoutes: FastifyPluginAsync = async (fastify) => {
       details: { serverName, gameSlug, ipAddress, port }
     });
 
+    const { secretKey: _issuedSecret, ...publicServer } = server;
     return reply.code(201).send({
-      server,
+      server: publicServer,
       secretKey
     });
   });

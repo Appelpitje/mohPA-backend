@@ -36,7 +36,8 @@
 }
 
 backend.mohpa.net {
-    handle /downloads/* {
+    @patch_zips path_regexp ^/downloads/[^/]+\.zip$
+    handle @patch_zips {
         uri strip_prefix /downloads
         root * /opt/mohpa
         file_server

@@ -38,6 +38,7 @@ services:
       API_PORT: 3000
       INTERNAL_API_KEY: mohpa-internal-secret-token
       JWT_SECRET: super-secret-mohpa-jwt-key-change-in-production
+      TURNSTILE_SECRET_KEY: ${TURNSTILE_SECRET_KEY:-}
     ports:
       - "3000:3000"
 

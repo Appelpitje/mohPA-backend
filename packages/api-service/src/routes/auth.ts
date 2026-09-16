@@ -2,13 +2,41 @@
  * mohPA Auth REST Routes (/api/v1/auth)
  */
 
-import { FastifyPluginAsync } from 'fastify';
+import { FastifyPluginAsync, FastifyReply, FastifyRequest } from 'fastify';
 import bcrypt from 'bcryptjs';
+import { TurnstileError, verifyTurnstileToken } from '../services/turnstile.js';
+
+async function requireTurnstile(
+  fastify: { turnstileSecret: string; turnstileRequired: boolean },
+  request: FastifyRequest,
+  reply: FastifyReply,
+  token?: string
+): Promise<boolean> {
+  try {
+    await verifyTurnstileToken({
+      token,
+      secret: fastify.turnstileSecret,
+      remoteip: request.ip,
+      required: fastify.turnstileRequired,
+    });
+    return true;
+  } catch (err) {
+    if (err instanceof TurnstileError) {
+      reply.code(err.statusCode).send({ error: err.message });
+      return false;
+    }
+    throw err;
+  }
+}
 
 export const authRoutes: FastifyPluginAsync = async (fastify) => {
   // Register Account
   fastify.post('/register', async (request, reply) => {
-    const { username, email, password, countryCode, dob } = request.body as any || {};
+    const { username, email, password, countryCode, dob, turnstileToken } = request.body as any || {};
+
+    if (!(await requireTurnstile(fastify, request, reply, turnstileToken))) {
+      return;
+    }
 
     if (!username || typeof username !== 'string' || username.trim().length < 3) {
       return reply.code(400).send({ error: 'Username must be at least 3 characters long' });
@@ -69,8 +97,12 @@ export const authRoutes: FastifyPluginAsync = async (fastify) => {
 
   // Login
   fastify.post('/login', async (request, reply) => {
-    const { identifier, username, email, password } = request.body as any || {};
+    const { identifier, username, email, password, turnstileToken } = request.body as any || {};
     const loginId = (identifier || username || email || '').trim();
+
+    if (!(await requireTurnstile(fastify, request, reply, turnstileToken))) {
+      return;
+    }
 
     if (!loginId || !password) {
       return reply.code(400).send({ error: 'Username/Email and Password are required' });

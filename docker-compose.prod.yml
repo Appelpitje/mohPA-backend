@@ -34,6 +34,7 @@ services:
       API_HOST: 0.0.0.0
       INTERNAL_API_KEY: ${INTERNAL_API_KEY}
       JWT_SECRET: ${JWT_SECRET}
+      TURNSTILE_SECRET_KEY: ${TURNSTILE_SECRET_KEY}
     ports:
       - 127.0.0.1:3000:3000
 

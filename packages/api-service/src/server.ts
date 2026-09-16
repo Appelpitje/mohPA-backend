@@ -26,6 +26,7 @@ import { serverRoutes } from './routes/servers.js';
 import { statsRoutes } from './routes/stats.js';
 import { adminRoutes } from './routes/admin.js';
 import { internalRoutes } from './routes/internal.js';
+import { newsRoutes } from './routes/news.js';
 import { InspectorHub, getInspectorHub } from './websocket/inspector.js';
 
 dotenv.config();
@@ -39,6 +40,8 @@ declare module 'fastify' {
     serverRepo: GameServerRepository;
     statsRepo: StatsRepository;
     inspectorHub: InspectorHub;
+    turnstileSecret: string;
+    turnstileRequired: boolean;
     authenticate: (request: FastifyRequest, reply: FastifyReply) => Promise<void>;
     authenticateAdmin: (request: FastifyRequest, reply: FastifyReply) => Promise<void>;
     authenticateInternal: (request: FastifyRequest, reply: FastifyReply) => Promise<void>;
@@ -49,6 +52,8 @@ export interface ServerOptions {
   db?: DbClient;
   jwtSecret?: string;
   internalApiKey?: string;
+  turnstileSecret?: string;
+  turnstileRequired?: boolean;
   logger?: boolean;
 }
 
@@ -61,6 +66,16 @@ export async function buildServer(options: ServerOptions = {}): Promise<FastifyI
   const dbClient = options.db || (await getDbClient());
   const jwtSecret = options.jwtSecret || process.env.JWT_SECRET || 'super-secret-mohpa-jwt-key-change-in-production';
   const internalApiKey = options.internalApiKey || process.env.INTERNAL_API_KEY || 'mohpa-internal-secret-token';
+  const turnstileSecret =
+    options.turnstileSecret !== undefined
+      ? options.turnstileSecret
+      : process.env.NODE_ENV === 'test'
+        ? ''
+        : process.env.TURNSTILE_SECRET_KEY || '';
+  const turnstileRequired =
+    options.turnstileRequired !== undefined
+      ? options.turnstileRequired
+      : process.env.NODE_ENV === 'production';
   const inspectorHub = getInspectorHub();
 
   // Instantiate Repositories
@@ -78,6 +93,8 @@ export async function buildServer(options: ServerOptions = {}): Promise<FastifyI
   server.decorate('serverRepo', serverRepo);
   server.decorate('statsRepo', statsRepo);
   server.decorate('inspectorHub', inspectorHub);
+  server.decorate('turnstileSecret', turnstileSecret);
+  server.decorate('turnstileRequired', turnstileRequired);
 
   // Register Core Plugins
   await server.register(cors, {
@@ -160,6 +177,7 @@ export async function buildServer(options: ServerOptions = {}): Promise<FastifyI
   await server.register(statsRoutes, { prefix: '/api/v1/stats' });
   await server.register(adminRoutes, { prefix: '/api/v1/admin' });
   await server.register(internalRoutes, { prefix: '/internal' });
+  await server.register(newsRoutes);
 
   // Register WebSocket Inspector Route
   server.get('/ws/inspector', { websocket: true }, (socket, req) => {

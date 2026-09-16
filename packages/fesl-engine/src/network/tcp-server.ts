@@ -1,7 +1,7 @@
 import * as net from 'node:net';
 import * as tls from 'node:tls';
 import { EventEmitter } from 'node:events';
-import { decodePacket, FeslPacket, HEADER_SIZE } from '@centralspy/shared';
+import { decodePacket, FeslPacket, HEADER_SIZE } from '@mohpa/shared';
 import { FeslConnection } from './connection.js';
 import { TlsManager } from './tls-manager.js';
 import { Ssl2Socket } from './ssl2-socket.js';

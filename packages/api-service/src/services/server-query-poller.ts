@@ -1,11 +1,11 @@
 /**
- * CentralSpy Dedicated Server UDP Query Poller
+ * mohPA Dedicated Server UDP Query Poller
  * Periodically polls registered dedicated servers to keep maps, player counts,
  * scoreboards, and online status in sync with authentic game server binaries.
  */
 
-import { GameServerRepository } from '@centralspy/db';
-import { queryGameServer, resolveIpLocation } from '@centralspy/shared';
+import { GameServerRepository } from '@mohpa/db';
+import { queryGameServer, resolveIpLocation } from '@mohpa/shared';
 
 export class ServerQueryPoller {
   private timer: NodeJS.Timeout | null = null;

@@ -1,8 +1,8 @@
 /**
- * CentralSpy Persona Repository
+ * mohPA Persona Repository
  */
 
-import { Persona } from '@centralspy/shared';
+import { Persona } from '@mohpa/shared';
 import { DbClient } from '../client.js';
 
 export interface CreatePersonaData {

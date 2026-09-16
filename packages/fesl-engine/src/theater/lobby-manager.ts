@@ -67,7 +67,7 @@ export class LobbyManager {
     const game: TheaterGameSession = {
       gid,
       lid,
-      name: params.name || `CentralSpy Game Server #${gid}`,
+      name: params.name || `mohPA Game Server #${gid}`,
       ip,
       port,
       queryPort: params.queryPort || port + 1000,

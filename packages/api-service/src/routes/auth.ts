@@ -1,5 +1,5 @@
 /**
- * CentralSpy Auth REST Routes (/api/v1/auth)
+ * mohPA Auth REST Routes (/api/v1/auth)
  */
 
 import { FastifyPluginAsync } from 'fastify';

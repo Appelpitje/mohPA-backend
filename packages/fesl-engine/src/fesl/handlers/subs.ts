@@ -1,4 +1,4 @@
-import { formatFeslDate, FeslPacket, FESL_TXN } from '@centralspy/shared';
+import { formatFeslDate, FeslPacket, FESL_TXN } from '@mohpa/shared';
 import { FeslHandlerContext, getPacketNumber, getPacketTxn } from '../types.js';
 
 /**

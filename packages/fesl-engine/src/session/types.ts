@@ -1,4 +1,4 @@
-import { FeslSessionData, ClientType } from '@centralspy/shared';
+import { FeslSessionData, ClientType } from '@mohpa/shared';
 
 export type { FeslSessionData, ClientType };
 

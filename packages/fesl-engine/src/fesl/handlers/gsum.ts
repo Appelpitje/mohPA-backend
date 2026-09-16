@@ -1,5 +1,5 @@
 import * as crypto from 'node:crypto';
-import { FeslPacket, FESL_TXN } from '@centralspy/shared';
+import { FeslPacket, FESL_TXN } from '@mohpa/shared';
 import { FeslHandlerContext, getPacketString, getPacketTxn } from '../types.js';
 
 /**

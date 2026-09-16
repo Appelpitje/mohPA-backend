@@ -21,7 +21,7 @@
     handle /motd/motd.asp* {
         header Content-Type "text/plain"
         header Connection "close"
-        respond "Welcome to CentralSpy" 200
+        respond "Welcome to mohPA" 200
     }
     handle /motd/* {
         header Content-Type "text/plain"
@@ -39,7 +39,7 @@ backend.mohpa.net {
     reverse_proxy api-service:3000
 }
 
-centralspy.appelpitje.dev {
+mohpa.appelpitje.dev, centralspy.appelpitje.dev {
     handle /downloads/* {
         uri strip_prefix /downloads
         root * /opt/mohpa

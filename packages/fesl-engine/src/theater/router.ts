@@ -1,5 +1,5 @@
 import { EventEmitter } from 'node:events';
-import { FeslPacket, THEATER_SUBSYSTEMS } from '@centralspy/shared';
+import { FeslPacket, THEATER_SUBSYSTEMS } from '@mohpa/shared';
 import { FeslConnection } from '../network/connection.js';
 import { SessionStore } from '../session/types.js';
 import { ApiClient } from '../api-client/api-client.js';

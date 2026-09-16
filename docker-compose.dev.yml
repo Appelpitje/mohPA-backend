@@ -3,12 +3,12 @@ version: '3.8'
 services:
   postgres:
     image: postgres:17-alpine
-    container_name: centralspy-postgres
+    container_name: mohpa-postgres
     restart: unless-stopped
     environment:
-      POSTGRES_USER: centralspy
-      POSTGRES_PASSWORD: centralspy
-      POSTGRES_DB: centralspy
+      POSTGRES_USER: mohpa
+      POSTGRES_PASSWORD: mohpa
+      POSTGRES_DB: mohpa
     ports:
       - "5432:5432"
     volumes:
@@ -16,7 +16,7 @@ services:
 
   redis:
     image: redis:7-alpine
-    container_name: centralspy-redis
+    container_name: mohpa-redis
     restart: unless-stopped
     ports:
       - "6379:6379"
@@ -27,17 +27,17 @@ services:
     build:
       context: .
       dockerfile: packages/api-service/Dockerfile
-    container_name: centralspy-api
+    container_name: mohpa-api
     restart: unless-stopped
     depends_on:
       - postgres
       - redis
     environment:
-      DATABASE_URL: postgresql://centralspy:centralspy@postgres:5432/centralspy
+      DATABASE_URL: postgresql://mohpa:mohpa@postgres:5432/mohpa
       REDIS_URL: redis://redis:6379
       API_PORT: 3000
-      INTERNAL_API_KEY: centralspy-internal-secret-token
-      JWT_SECRET: super-secret-centralspy-jwt-key-change-in-production
+      INTERNAL_API_KEY: mohpa-internal-secret-token
+      JWT_SECRET: super-secret-mohpa-jwt-key-change-in-production
     ports:
       - "3000:3000"
 
@@ -45,7 +45,7 @@ services:
     build:
       context: .
       dockerfile: packages/fesl-engine/Dockerfile
-    container_name: centralspy-fesl
+    container_name: mohpa-fesl
     restart: unless-stopped
     depends_on:
       - api-service
@@ -53,7 +53,7 @@ services:
     environment:
       REDIS_URL: redis://redis:6379
       API_SERVICE_URL: http://api-service:3000
-      INTERNAL_API_KEY: centralspy-internal-secret-token
+      INTERNAL_API_KEY: mohpa-internal-secret-token
       FESL_CLIENT_PORT: 18020
       FESL_SERVER_PORT: 18051
       THEATER_CLIENT_PORT: 18275

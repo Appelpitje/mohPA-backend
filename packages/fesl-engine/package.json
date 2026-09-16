@@ -1,5 +1,5 @@
 {
-  "name": "@centralspy/fesl-engine",
+  "name": "@mohpa/fesl-engine",
   "version": "1.0.0",
   "private": true,
   "description": "High-concurrency EA FESL & Theater TCP/TLS Protocol Server",
@@ -11,7 +11,7 @@
     "test": "vitest run"
   },
   "dependencies": {
-    "@centralspy/shared": "*",
+    "@mohpa/shared": "*",
     "dotenv": "^16.4.7",
     "ioredis": "^5.4.2",
     "ws": "^8.18.0"

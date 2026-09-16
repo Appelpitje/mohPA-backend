@@ -1,4 +1,4 @@
-# CentralSpy API Service Dockerfile
+# mohPA API Service Dockerfile
 FROM node:22-alpine AS builder
 
 WORKDIR /app
@@ -20,9 +20,9 @@ COPY packages/db ./packages/db
 COPY packages/api-service ./packages/api-service
 
 # Build TypeScript
-RUN npm run build --workspace=@centralspy/shared && \
-    npm run build --workspace=@centralspy/db && \
-    npm run build --workspace=@centralspy/api-service
+RUN npm run build --workspace=@mohpa/shared && \
+    npm run build --workspace=@mohpa/db && \
+    npm run build --workspace=@mohpa/api-service
 
 # Production runner image
 FROM node:22-alpine AS runner

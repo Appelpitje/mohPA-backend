@@ -1,9 +1,9 @@
 {
-  "name": "@centralspy/db",
+  "name": "@mohpa/db",
   "version": "1.0.0",
   "type": "module",
   "private": true,
-  "description": "CentralSpy Database Connection, Migrations, and Repositories",
+  "description": "mohPA Database Connection, Migrations, and Repositories",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
   "scripts": {
@@ -11,7 +11,7 @@
     "test": "vitest run"
   },
   "dependencies": {
-    "@centralspy/shared": "*",
+    "@mohpa/shared": "*",
     "dotenv": "^16.4.7",
     "pg": "^8.13.3",
     "uuid": "^11.1.0"

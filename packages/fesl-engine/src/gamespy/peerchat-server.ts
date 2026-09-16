@@ -194,7 +194,7 @@ export class PeerchatServer {
         if (upper.startsWith('JOIN')) {
           const channel = (parts[1] || '').replace(/^:/, '') || '#GSP!mohpa';
           sendPlain(`:${nick} JOIN ${channel}`);
-          sendPlain(`:s 332 ${nick} ${channel} :CentralSpy`);
+          sendPlain(`:s 332 ${nick} ${channel} :mohPA`);
           sendPlain(`:s 353 ${nick} = ${channel} :${nick}`);
           sendPlain(`:s 366 ${nick} ${channel} :End of NAMES`);
           continue;

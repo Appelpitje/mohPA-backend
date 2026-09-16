@@ -1,5 +1,5 @@
 /**
- * CentralSpy End-to-End Simulation & Integration Orchestrator
+ * mohPA End-to-End Simulation & Integration Orchestrator
  *
  * Full Lifecycle:
  * 1. Starts Central API Service (with in-memory database).
@@ -12,9 +12,9 @@
  */
 
 import { FastifyInstance } from 'fastify';
-import { MemoryDbClient } from '@centralspy/db';
-import { buildServer } from '@centralspy/api-service';
-import { FeslEngineServer } from '@centralspy/fesl-engine';
+import { MemoryDbClient } from '@mohpa/db';
+import { buildServer } from '@mohpa/api-service';
+import { FeslEngineServer } from '@mohpa/fesl-engine';
 import { MockDedicatedServer } from './mock-dedicated-server.js';
 import { MockGameClient } from './mock-game-client.js';
 import bcrypt from 'bcryptjs';
@@ -25,8 +25,8 @@ const FESL_SERVER_PORT = 18051;
 const THEATER_CLIENT_PORT = 18275;
 const THEATER_SERVER_PORT = 18056;
 
-const INTERNAL_API_KEY = 'centralspy-internal-secret-token';
-const JWT_SECRET = 'centralspy-e2e-simulation-jwt-secret';
+const INTERNAL_API_KEY = 'mohpa-internal-secret-token';
+const JWT_SECRET = 'mohpa-e2e-simulation-jwt-secret';
 
 function log(section: string, message: string) {
   const timestamp = new Date().toISOString().substring(11, 19);
@@ -39,7 +39,7 @@ function success(message: string) {
 
 async function runSimulation() {
   console.log('\n================================================================');
-  console.log('       CENTRALSPY END-TO-END SYSTEM INTEGRATION SIMULATION      ');
+  console.log('       MOHPA END-TO-END SYSTEM INTEGRATION SIMULATION      ');
   console.log('================================================================\n');
 
   let apiServer: FastifyInstance | null = null;
@@ -62,7 +62,7 @@ async function runSimulation() {
       `INSERT INTO users (username, email, password_hash, country_code, is_admin)
        VALUES ($1, $2, $3, $4, FALSE)
        RETURNING *`,
-      ['TestCommander', 'commander@centralspy.net', passwordHash, 'US']
+      ['TestCommander', 'commander@mohpa.net', passwordHash, 'US']
     );
     const clientUser = userRes.rows[0];
 
@@ -71,7 +71,7 @@ async function runSimulation() {
       `INSERT INTO users (username, email, password_hash, country_code, is_admin)
        VALUES ($1, $2, $3, $4, FALSE)
        RETURNING *`,
-      ['mohpa_server_host', 'server@centralspy.net', serverHostHash, 'US']
+      ['mohpa_server_host', 'server@mohpa.net', serverHostHash, 'US']
     );
 
     // Create admin user: RootAdmin
@@ -79,7 +79,7 @@ async function runSimulation() {
       `INSERT INTO users (username, email, password_hash, country_code, is_admin)
        VALUES ($1, $2, $3, $4, TRUE)
        RETURNING *`,
-      ['RootAdmin', 'admin@centralspy.net', passwordHash, 'US']
+      ['RootAdmin', 'admin@mohpa.net', passwordHash, 'US']
     );
 
     // Seed persona: Pvt_Conlin for MOHPA
@@ -141,7 +141,7 @@ async function runSimulation() {
       feslPort: FESL_SERVER_PORT,
       theaterHost: '127.0.0.1',
       theaterPort: THEATER_SERVER_PORT,
-      serverName: 'CentralSpy MOHPA Pacific Server [Ranked]',
+      serverName: 'mohPA Pacific Server [Ranked]',
       gameSlug: 'mohpa',
       gamePort: 13200,
       queryPort: 29900,

@@ -1,5 +1,5 @@
 /**
- * CentralSpy Database Connection Pool & Client Layer
+ * mohPA Database Connection Pool & Client Layer
  * Supports PostgreSQL connection pool with in-memory fallback for isolated testing.
  */
 
@@ -35,7 +35,7 @@ export class PostgresDbClient implements DbClient {
     } else if (connectionStringOrConfig) {
       this.pool = new Pool(connectionStringOrConfig);
     } else {
-      const connectionString = process.env.DATABASE_URL || 'postgresql://centralspy:centralspy@localhost:5432/centralspy';
+      const connectionString = process.env.DATABASE_URL || 'postgresql://mohpa:mohpa@localhost:5432/mohpa';
       this.pool = new Pool({ connectionString });
     }
 

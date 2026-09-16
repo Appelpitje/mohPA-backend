@@ -1,9 +1,9 @@
 import { describe, it, expect, beforeAll, afterAll } from 'vitest';
 import { FastifyInstance } from 'fastify';
-import { MemoryDbClient } from '@centralspy/db';
+import { MemoryDbClient } from '@mohpa/db';
 import { buildServer } from '../src/server.js';
 
-describe('CentralSpy API Service Integration Tests', () => {
+describe('mohPA API Service Integration Tests', () => {
   let app: FastifyInstance;
   let db: MemoryDbClient;
   let authToken: string;
@@ -40,7 +40,7 @@ describe('CentralSpy API Service Integration Tests', () => {
       const res = await app.inject({ method: 'GET', url: '/' });
       expect(res.statusCode).toBe(200);
       const body = JSON.parse(res.body);
-      expect(body.name).toBe('CentralSpy API Service');
+      expect(body.name).toBe('mohPA API Service');
     });
   });
 
@@ -51,7 +51,7 @@ describe('CentralSpy API Service Integration Tests', () => {
         url: '/api/v1/auth/register',
         payload: {
           username: 'TestCommander',
-          email: 'commander@centralspy.net',
+          email: 'commander@mohpa.net',
           password: 'SecretPassword123',
           countryCode: 'US',
           dob: '1990-01-01'
@@ -71,7 +71,7 @@ describe('CentralSpy API Service Integration Tests', () => {
         method: 'POST',
         url: '/api/v1/auth/login',
         payload: {
-          identifier: 'commander@centralspy.net',
+          identifier: 'commander@mohpa.net',
           password: 'SecretPassword123'
         }
       });
@@ -250,7 +250,7 @@ describe('CentralSpy API Service Integration Tests', () => {
         url: '/api/v1/auth/register',
         payload: {
           username: 'RecruitPlayer',
-          email: 'recruit@centralspy.net',
+          email: 'recruit@mohpa.net',
           password: 'Password123!',
           countryCode: 'CA',
           dob: '1998-08-08'
@@ -396,7 +396,7 @@ describe('CentralSpy API Service Integration Tests', () => {
       // Create admin user
       const adminUser = await db.query(
         `INSERT INTO users (username, email, password_hash, is_admin)
-         VALUES ('RootAdmin', 'admin@centralspy.net', 'hash', TRUE)
+         VALUES ('RootAdmin', 'admin@mohpa.net', 'hash', TRUE)
          RETURNING *`
       );
       adminId = adminUser.rows[0].id;
@@ -404,7 +404,7 @@ describe('CentralSpy API Service Integration Tests', () => {
       adminToken = app.jwt.sign({
         id: adminId,
         username: 'RootAdmin',
-        email: 'admin@centralspy.net',
+        email: 'admin@mohpa.net',
         isAdmin: true
       });
     });

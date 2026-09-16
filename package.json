@@ -1,13 +1,13 @@
 {
-  "name": "centralspy-backend",
+  "name": "mohpa-backend",
   "version": "1.0.0",
   "private": true,
-  "description": "CentralSpy EA FESL & Theater Server Emulation Backend",
+  "description": "mohPA EA FESL & Theater Server Emulation Backend",
   "workspaces": [
     "packages/*"
   ],
   "scripts": {
-    "build": "npm run build --workspace=@centralspy/shared && npm run build --workspace=@centralspy/db && npm run build --workspace=@centralspy/api-service && npm run build --workspace=@centralspy/fesl-engine",
+    "build": "npm run build --workspace=@mohpa/shared && npm run build --workspace=@mohpa/db && npm run build --workspace=@mohpa/api-service && npm run build --workspace=@mohpa/fesl-engine",
     "test": "vitest run",
     "test:watch": "vitest",
     "test:e2e": "tsx test/e2e-simulation.ts",

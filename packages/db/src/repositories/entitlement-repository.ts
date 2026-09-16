@@ -1,8 +1,8 @@
 /**
- * CentralSpy Entitlement & CD Key Repository
+ * mohPA Entitlement & CD Key Repository
  */
 
-import { Entitlement } from '@centralspy/shared';
+import { Entitlement } from '@mohpa/shared';
 import { DbClient } from '../client.js';
 
 export interface CreateEntitlementData {

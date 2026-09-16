@@ -1,5 +1,5 @@
 /**
- * CentralSpy Admin & Moderation REST Routes (/api/v1/admin)
+ * mohPA Admin & Moderation REST Routes (/api/v1/admin)
  */
 
 import { FastifyPluginAsync } from 'fastify';

@@ -2,7 +2,7 @@ import { describe, it, expect, beforeAll, afterAll } from 'vitest';
 import * as net from 'node:net';
 import * as tls from 'node:tls';
 import { FeslEngineServer } from '../src/server.js';
-import { encodePacket, decodePacket, FESL_SUBSYSTEMS, FESL_TXN } from '@centralspy/shared';
+import { encodePacket, decodePacket, FESL_SUBSYSTEMS, FESL_TXN } from '@mohpa/shared';
 
 describe('TCP / TLS Server End-to-End Test', () => {
   let server: FeslEngineServer;

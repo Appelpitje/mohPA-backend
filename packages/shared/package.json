@@ -1,9 +1,9 @@
 {
-  "name": "@centralspy/shared",
+  "name": "@mohpa/shared",
   "version": "1.0.0",
   "type": "module",
   "private": true,
-  "description": "CentralSpy Shared Types, Codecs, and Game Configurations",
+  "description": "mohPA Shared Types, Codecs, and Game Configurations",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
   "scripts": {

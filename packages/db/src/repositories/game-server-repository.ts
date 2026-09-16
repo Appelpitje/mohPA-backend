@@ -1,8 +1,8 @@
 /**
- * CentralSpy Game Server Repository
+ * mohPA Game Server Repository
  */
 
-import { GameServer } from '@centralspy/shared';
+import { GameServer } from '@mohpa/shared';
 import { DbClient } from '../client.js';
 import crypto from 'crypto';
 

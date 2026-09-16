@@ -1,5 +1,5 @@
 /**
- * CentralSpy Database Migration Runner
+ * mohPA Database Migration Runner
  */
 
 import { DbClient } from './client.js';

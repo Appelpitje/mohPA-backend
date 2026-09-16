@@ -1,5 +1,5 @@
 /**
- * @centralspy/db - Public Entry Point
+ * @mohpa/db - Public Entry Point
  */
 
 export * from './client.js';

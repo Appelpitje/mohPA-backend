@@ -1,8 +1,8 @@
 /**
- * CentralSpy Stats, Match History & Audit Repository
+ * mohPA Stats, Match History & Audit Repository
  */
 
-import { PersonaStats, MatchHistory, AuditLog } from '@centralspy/shared';
+import { PersonaStats, MatchHistory, AuditLog } from '@mohpa/shared';
 import { DbClient } from '../client.js';
 
 export interface LeaderboardEntry extends PersonaStats {

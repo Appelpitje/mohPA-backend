@@ -14,14 +14,14 @@
     "resolveJsonModule": true,
     "baseUrl": ".",
     "paths": {
-      "@centralspy/shared": ["packages/shared/src/index.ts"],
-      "@centralspy/shared/*": ["packages/shared/src/*"],
-      "@centralspy/db": ["packages/db/src/index.ts"],
-      "@centralspy/db/*": ["packages/db/src/*"],
-      "@centralspy/api-service": ["packages/api-service/src/index.ts"],
-      "@centralspy/api-service/*": ["packages/api-service/src/*"],
-      "@centralspy/fesl-engine": ["packages/fesl-engine/src/index.ts"],
-      "@centralspy/fesl-engine/*": ["packages/fesl-engine/src/*"]
+      "@mohpa/shared": ["packages/shared/src/index.ts"],
+      "@mohpa/shared/*": ["packages/shared/src/*"],
+      "@mohpa/db": ["packages/db/src/index.ts"],
+      "@mohpa/db/*": ["packages/db/src/*"],
+      "@mohpa/api-service": ["packages/api-service/src/index.ts"],
+      "@mohpa/api-service/*": ["packages/api-service/src/*"],
+      "@mohpa/fesl-engine": ["packages/fesl-engine/src/index.ts"],
+      "@mohpa/fesl-engine/*": ["packages/fesl-engine/src/*"]
     }
   },
   "exclude": ["node_modules", "dist"]

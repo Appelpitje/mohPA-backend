@@ -1,5 +1,5 @@
 /**
- * @centralspy/shared - Public Entry Point
+ * @mohpa/shared - Public Entry Point
  */
 
 export * from './types/index.js';

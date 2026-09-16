@@ -1,7 +1,7 @@
 import { describe, it, expect, beforeAll, afterAll } from 'vitest';
 import * as net from 'node:net';
 import { FeslEngineServer } from '../src/server.js';
-import { encodePacket, decodePacket, THEATER_SUBSYSTEMS } from '@centralspy/shared';
+import { encodePacket, decodePacket, THEATER_SUBSYSTEMS } from '@mohpa/shared';
 
 describe('Theater Protocol TCP End-to-End Simulation', () => {
   let server: FeslEngineServer;
@@ -113,7 +113,7 @@ describe('Theater Protocol TCP End-to-End Simulation', () => {
     host.send(THEATER_SUBSYSTEMS.CGAM, 0x00000002, {
       TID: '2',
       LID: 1,
-      NAME: 'CentralSpy Official Minsk Titan',
+      NAME: 'mohPA Official Minsk Titan',
       IP: '127.0.0.1',
       PORT: 16567,
       'MAX-PLAYERS': 64,
@@ -173,7 +173,7 @@ describe('Theater Protocol TCP End-to-End Simulation', () => {
     const gdatRes = await client.waitForPacket((d) => d.header.subsystem === 'GDAT');
     expect(String(gdatRes.payload.TID)).toBe('5');
     expect(Number(gdatRes.payload.GID)).toBe(registeredGid);
-    expect(gdatRes.payload.NAME).toContain('CentralSpy Official Minsk Titan');
+    expect(gdatRes.payload.NAME).toContain('mohPA Official Minsk Titan');
 
     // 4. Client EGAM (Enter Game)
     // Setup host listener for incoming EGRQ and PENT

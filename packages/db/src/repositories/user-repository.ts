@@ -1,8 +1,8 @@
 /**
- * CentralSpy User Repository
+ * mohPA User Repository
  */
 
-import { User } from '@centralspy/shared';
+import { User } from '@mohpa/shared';
 import { DbClient } from '../client.js';
 
 export interface CreateUserData {

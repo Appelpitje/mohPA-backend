@@ -57,12 +57,12 @@ describe('KV Serializer / Deserializer', () => {
     expect(parsed.TXN).toBe('NuLogin');
     expect(parsed.encryptedInfo).toContain('Hello World');
 
-    const obj = { message: 'Hello "World" & CentralSpy' };
+    const obj = { message: 'Hello "World" & mohPA' };
     const serialized = serializeKV(obj, { quoteStrings: true });
-    expect(serialized).toContain('message="Hello \\"World\\" & CentralSpy"\n');
+    expect(serialized).toContain('message="Hello \\"World\\" & mohPA"\n');
 
     const roundtrip = deserializeKV(serialized);
-    expect(roundtrip.message).toBe('Hello "World" & CentralSpy');
+    expect(roundtrip.message).toBe('Hello "World" & mohPA');
   });
 
   it('should handle empty arrays and error containers', () => {

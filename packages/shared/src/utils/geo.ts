@@ -1,5 +1,5 @@
 /**
- * CentralSpy IP Geolocation & Server Region Resolver
+ * mohPA IP Geolocation & Server Region Resolver
  */
 
 export interface LocationInfo {

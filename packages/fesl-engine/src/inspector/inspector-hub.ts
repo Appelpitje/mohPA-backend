@@ -1,5 +1,5 @@
 import { WebSocketServer, WebSocket } from 'ws';
-import { InspectorPacketEvent, InspectorConnectionEvent } from '@centralspy/shared';
+import { InspectorPacketEvent, InspectorConnectionEvent } from '@mohpa/shared';
 import { config } from '../config/config.js';
 
 export class InspectorHub {

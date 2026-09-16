@@ -1,4 +1,4 @@
-import { formatFeslDate, FeslPacket, FESL_TXN, getGameConfig } from '@centralspy/shared';
+import { formatFeslDate, FeslPacket, FESL_TXN, getGameConfig } from '@mohpa/shared';
 import { FeslHandlerContext, getPacketString, getPacketNumber, getPacketTxn } from '../types.js';
 import { config } from '../../config/config.js';
 
@@ -75,7 +75,7 @@ export async function handleFsys(ctx: FeslHandlerContext): Promise<Record<string
           {
             addr: config.publicIp,
             port: config.feslClientPort,
-            name: 'Local CentralSpy Gateway',
+            name: 'Local mohPA Gateway',
             type: 0,
           },
         ],

@@ -1,18 +1,18 @@
 services:
   postgres:
     image: postgres:17-alpine
-    container_name: centralspy-postgres
+    container_name: mohpa-postgres
     restart: unless-stopped
     environment:
-      POSTGRES_USER: centralspy
+      POSTGRES_USER: ${POSTGRES_USER:-centralspy}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
-      POSTGRES_DB: centralspy
+      POSTGRES_DB: ${POSTGRES_DB:-centralspy}
     volumes:
       - postgres_data:/var/lib/postgresql/data
 
   redis:
     image: redis:7-alpine
-    container_name: centralspy-redis
+    container_name: mohpa-redis
     restart: unless-stopped
     volumes:
       - redis_data:/data
@@ -22,13 +22,13 @@ services:
       context: .
       dockerfile: Dockerfile.prod
     command: [node, packages/api-service/dist/index.js]
-    container_name: centralspy-api
+    container_name: mohpa-api
     restart: unless-stopped
     depends_on:
       - postgres
       - redis
     environment:
-      DATABASE_URL: postgresql://centralspy:${POSTGRES_PASSWORD}@postgres:5432/centralspy
+      DATABASE_URL: postgresql://${POSTGRES_USER:-centralspy}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB:-centralspy}
       REDIS_URL: redis://redis:6379
       API_PORT: 3000
       API_HOST: 0.0.0.0
@@ -42,7 +42,7 @@ services:
       context: .
       dockerfile: Dockerfile.prod
     command: [node, packages/fesl-engine/dist/main.js]
-    container_name: centralspy-fesl
+    container_name: mohpa-fesl
     restart: unless-stopped
     depends_on:
       - api-service
@@ -80,7 +80,7 @@ services:
 
   caddy:
     image: caddy:2-alpine
-    container_name: centralspy-caddy
+    container_name: mohpa-caddy
     restart: unless-stopped
     ports:
       - 80:80

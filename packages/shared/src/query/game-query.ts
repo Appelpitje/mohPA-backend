@@ -1,5 +1,5 @@
 /**
- * CentralSpy Game Server UDP Query Client
+ * mohPA Game Server UDP Query Client
  * Supports GameSpy 1 and Quake 3 / id Tech 3 query protocols for dedicated game servers.
  */
 

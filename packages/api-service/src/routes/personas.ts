@@ -1,9 +1,9 @@
 /**
- * CentralSpy Personas REST Routes (/api/v1/personas)
+ * mohPA Personas REST Routes (/api/v1/personas)
  */
 
 import { FastifyPluginAsync } from 'fastify';
-import { getGameConfig } from '@centralspy/shared';
+import { getGameConfig } from '@mohpa/shared';
 
 export const personaRoutes: FastifyPluginAsync = async (fastify) => {
   // List personas owned by the authenticated user

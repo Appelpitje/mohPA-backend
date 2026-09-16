@@ -1,5 +1,5 @@
 /**
- * CentralSpy Game Profiles & Configuration
+ * mohPA Game Profiles & Configuration
  */
 
 import { GameConfig } from '../types/index.js';
@@ -48,7 +48,7 @@ export function getGameConfig(slugOrSku: string): GameConfig | undefined {
     }
   }
 
-  // Default fallback for CentralSpy dedicated to MOHPA
+  // Default fallback for mohPA dedicated to MOHPA
   return GAME_PROFILES['mohpa'];
 }
 

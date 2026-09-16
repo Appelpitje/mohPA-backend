@@ -1,4 +1,4 @@
--- CentralSpy Initial Database Schema Migration 001
+-- mohPA Initial Database Schema Migration 001
 
 CREATE EXTENSION IF NOT EXISTS "pgcrypto";
 

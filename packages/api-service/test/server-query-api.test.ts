@@ -1,7 +1,7 @@
 import { describe, it, expect, beforeAll, afterAll } from 'vitest';
 import { FastifyInstance } from 'fastify';
 import * as dgram from 'node:dgram';
-import { MemoryDbClient } from '@centralspy/db';
+import { MemoryDbClient } from '@mohpa/db';
 import { buildServer } from '../src/server.js';
 
 describe('API Service Game Server Query Integration', () => {
@@ -41,7 +41,7 @@ describe('API Service Game Server Query Integration', () => {
           )
           .join('');
 
-        const resp = `\\hostname\\CentralSpy Official Test Node\\hostport\\13200\\mapname\\${currentMap}\\gametype\\${currentGameMode}\\numplayers\\${currentPlayers.length}\\maxplayers\\32\\gamever\\1.2\\dedicated\\1${playerParts}\\final\\`;
+        const resp = `\\hostname\\mohPA Official Test Node\\hostport\\13200\\mapname\\${currentMap}\\gametype\\${currentGameMode}\\numplayers\\${currentPlayers.length}\\maxplayers\\32\\gamever\\1.2\\dedicated\\1${playerParts}\\final\\`;
         mockServerUdp.send(resp, rinfo.port, rinfo.address);
       }
     });
@@ -76,7 +76,7 @@ describe('API Service Game Server Query Integration', () => {
     expect(body.server).toBeDefined();
 
     // Check that backend populated REAL queried data instead of placeholder/fake data!
-    expect(body.server.name).toBe('CentralSpy Official Test Node');
+    expect(body.server.name).toBe('mohPA Official Test Node');
     expect(body.server.mapName).toBe('Henderson Airfield');
     expect(body.server.gameMode).toBe('Invader');
     expect(body.server.currentPlayers).toBe(2);

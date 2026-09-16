@@ -1,4 +1,4 @@
-import { FeslPacket } from '@centralspy/shared';
+import { FeslPacket } from '@mohpa/shared';
 import { TheaterHandlerContext, getPacketString, getPacketNumber, getPacketTxn } from '../types.js';
 import { config } from '../../config/config.js';
 

@@ -1,5 +1,5 @@
 /**
- * CentralSpy Internal IPC Routes (/internal)
+ * mohPA Internal IPC Routes (/internal)
  * Secured with X-Internal-Key for direct communication with fesl-engine.
  */
 

@@ -16,7 +16,7 @@ import {
   parseFeslDate,
   FESL_SUBTYPE_RESPONSE_MASK,
   FESL_SUBTYPE_EVENT_MASK
-} from '@centralspy/shared';
+} from '@mohpa/shared';
 
 describe('FESL & Theater Packet Codec & Framing', () => {
   describe('12-Byte Binary Header & Endianness', () => {
@@ -63,7 +63,7 @@ describe('FESL & Theater Packet Codec & Framing', () => {
     it('decodes encoded packet back into structured object with matching header', () => {
       const originalPayload = {
         TXN: 'NuLogin',
-        nuid: 'pilot1@centralspy.local',
+        nuid: 'pilot1@mohpa.local',
         returnEncryptedInfo: 1
       };
       const seq = 123456;
@@ -75,7 +75,7 @@ describe('FESL & Theater Packet Codec & Framing', () => {
       expect(decoded?.header.subtype).toBe(seq);
       expect(decoded?.header.packetLength).toBe(encoded.length);
       expect(decoded?.payload.TXN).toBe('NuLogin');
-      expect(decoded?.payload.nuid).toBe('pilot1@centralspy.local');
+      expect(decoded?.payload.nuid).toBe('pilot1@mohpa.local');
       expect(decoded?.payload.returnEncryptedInfo).toBe(1);
     });
 

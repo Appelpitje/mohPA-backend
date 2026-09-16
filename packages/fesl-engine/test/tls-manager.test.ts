@@ -4,7 +4,7 @@ import { TlsManager, LEGACY_CIPHERS } from '../src/network/tls-manager.js';
 describe('TlsManager', () => {
   it('should generate a valid self-signed certificate and RSA key pair', () => {
     const tlsManager = TlsManager.getInstance();
-    const certs = tlsManager.generateSelfSignedCert('centralspy.test');
+    const certs = tlsManager.generateSelfSignedCert('mohpa.test');
 
     expect(certs.cert).toContain('-----BEGIN CERTIFICATE-----');
     expect(certs.cert).toContain('-----END CERTIFICATE-----');

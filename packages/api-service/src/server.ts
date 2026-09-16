@@ -1,5 +1,5 @@
 /**
- * CentralSpy Fastify Server Setup
+ * mohPA Fastify Server Setup
  */
 
 import Fastify, { FastifyInstance, FastifyRequest, FastifyReply } from 'fastify';
@@ -17,7 +17,7 @@ import {
   GameServerRepository,
   StatsRepository,
   getDbClient
-} from '@centralspy/db';
+} from '@mohpa/db';
 
 import { authRoutes } from './routes/auth.js';
 import { personaRoutes } from './routes/personas.js';
@@ -59,8 +59,8 @@ export async function buildServer(options: ServerOptions = {}): Promise<FastifyI
   });
 
   const dbClient = options.db || (await getDbClient());
-  const jwtSecret = options.jwtSecret || process.env.JWT_SECRET || 'super-secret-centralspy-jwt-key-change-in-production';
-  const internalApiKey = options.internalApiKey || process.env.INTERNAL_API_KEY || 'centralspy-internal-secret-token';
+  const jwtSecret = options.jwtSecret || process.env.JWT_SECRET || 'super-secret-mohpa-jwt-key-change-in-production';
+  const internalApiKey = options.internalApiKey || process.env.INTERNAL_API_KEY || 'mohpa-internal-secret-token';
   const inspectorHub = getInspectorHub();
 
   // Instantiate Repositories
@@ -137,7 +137,7 @@ export async function buildServer(options: ServerOptions = {}): Promise<FastifyI
 
   server.get('/', async () => {
     return {
-      name: 'CentralSpy API Service',
+      name: 'mohPA API Service',
       version: '1.0.0',
       docs: '/api/v1',
       endpoints: {

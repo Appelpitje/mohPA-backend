@@ -4,7 +4,7 @@ import { RedisSessionStore } from '../src/session/redis-session-store.js';
 import { ApiClient } from '../src/api-client/api-client.js';
 import { FeslRouter } from '../src/fesl/router.js';
 import { FeslConnection } from '../src/network/connection.js';
-import { FeslPacket, FESL_SUBSYSTEMS, FESL_TXN, decodePacket } from '@centralspy/shared';
+import { FeslPacket, FESL_SUBSYSTEMS, FESL_TXN, decodePacket } from '@mohpa/shared';
 
 describe('FESL Subsystem Handlers & Router', () => {
   let sessionStore: RedisSessionStore;

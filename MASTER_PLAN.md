@@ -1,7 +1,7 @@
-# CentralSpy: Backend Master Plan
+# mohPA: Backend Master Plan
 
 ## 1. Executive Summary
-This document serves as the comprehensive, modular Master Plan for the backend architecture of **CentralSpy**, an EA FESL (Front End Services Layer) and Theater server emulation platform.
+This document serves as the comprehensive, modular Master Plan for the backend architecture of **mohPA**, an EA FESL (Front End Services Layer) and Theater server emulation platform.
 
 The backend consists of two primary services:
 1. **Backend 1 (`fesl-engine`)**: High-concurrency TCP/TLS Protocol Server emulating FESL, Theater, and GameSpy PreAuth wire protocols.

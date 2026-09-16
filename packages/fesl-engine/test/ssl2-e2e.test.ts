@@ -3,7 +3,7 @@ import * as net from 'node:net';
 import * as crypto from 'node:crypto';
 import { FeslEngineServer } from '../src/server.js';
 import { Rc4Cipher } from '../src/network/ssl2-socket.js';
-import { encodePacket, decodePacket } from '@centralspy/shared';
+import { encodePacket, decodePacket } from '@mohpa/shared';
 
 describe('SSL 2.0 MOHPA Client End-to-End Test', () => {
   let server: FeslEngineServer;

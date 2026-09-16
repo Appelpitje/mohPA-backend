@@ -1,9 +1,9 @@
 /**
- * CentralSpy Entitlements & CD Keys REST Routes (/api/v1/entitlements)
+ * mohPA Entitlements & CD Keys REST Routes (/api/v1/entitlements)
  */
 
 import { FastifyPluginAsync } from 'fastify';
-import { getGameConfig } from '@centralspy/shared';
+import { getGameConfig } from '@mohpa/shared';
 
 export const entitlementRoutes: FastifyPluginAsync = async (fastify) => {
   // Claim a CD Key

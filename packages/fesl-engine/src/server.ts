@@ -8,7 +8,7 @@ import { LobbyManager } from './theater/lobby-manager.js';
 import { InspectorHub } from './inspector/inspector-hub.js';
 import { config, FeslEngineConfig } from './config/config.js';
 import { FeslConnection } from './network/connection.js';
-import { FeslPacket, queryGameServer, resolveIpLocation } from '@centralspy/shared';
+import { FeslPacket, queryGameServer, resolveIpLocation } from '@mohpa/shared';
 import { GpcmServer } from './gamespy/gpcm-server.js';
 import { GsPspServer } from './gamespy/gpsp-server.js';
 import { GsAvailableServer } from './gamespy/available-server.js';
@@ -109,7 +109,7 @@ export class FeslEngineServer {
    * Starts all TCP/TLS listeners and WebSocket inspector.
    */
   public async start(ports?: PortListenerConfig[]): Promise<void> {
-    console.log('[FeslEngineServer] Initializing CentralSpy FESL Engine...');
+    console.log('[FeslEngineServer] Initializing mohPA FESL Engine...');
 
     // Initialize TLS Manager (loads or generates dev certs)
     this.tlsManager.getCertificates();
@@ -163,7 +163,7 @@ export class FeslEngineServer {
       }, 60000);
     }
 
-    console.log('[FeslEngineServer] CentralSpy FESL Engine successfully started.');
+    console.log('[FeslEngineServer] mohPA FESL Engine successfully started.');
   }
 
   private async seedDedicatedServer(): Promise<void> {

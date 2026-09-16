@@ -1,9 +1,9 @@
 {
-  "name": "@centralspy/api-service",
+  "name": "@mohpa/api-service",
   "version": "1.0.0",
   "type": "module",
   "private": true,
-  "description": "CentralSpy Central REST API, Auth, and WebSocket Inspector Service",
+  "description": "mohPA Central REST API, Auth, and WebSocket Inspector Service",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
   "scripts": {
@@ -13,8 +13,8 @@
     "test": "vitest run"
   },
   "dependencies": {
-    "@centralspy/db": "*",
-    "@centralspy/shared": "*",
+    "@mohpa/db": "*",
+    "@mohpa/shared": "*",
     "@fastify/cors": "^10.0.2",
     "@fastify/jwt": "^9.0.4",
     "@fastify/rate-limit": "^10.2.2",

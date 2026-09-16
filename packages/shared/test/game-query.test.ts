@@ -10,10 +10,10 @@ describe('Game Server Query Engine', () => {
   describe('parseGameSpy1Response', () => {
     it('correctly parses GameSpy 1 status string with players and rules', () => {
       const gs1Sample =
-        '\\hostname\\CentralSpy Pacific Theater\\hostport\\13200\\mapname\\Henderson Airfield\\gametype\\Invader\\numplayers\\2\\maxplayers\\32\\gamever\\1.2\\dedicated\\1\\timelimit\\20\\player_0\\TommyConlin\\score_0\\100\\ping_0\\25\\team_0\\1\\player_1\\SergeantFoley\\score_1\\75\\ping_1\\45\\team_1\\2\\final\\';
+        '\\hostname\\mohPA Pacific Theater\\hostport\\13200\\mapname\\Henderson Airfield\\gametype\\Invader\\numplayers\\2\\maxplayers\\32\\gamever\\1.2\\dedicated\\1\\timelimit\\20\\player_0\\TommyConlin\\score_0\\100\\ping_0\\25\\team_0\\1\\player_1\\SergeantFoley\\score_1\\75\\ping_1\\45\\team_1\\2\\final\\';
 
       const parsed = parseGameSpy1Response(gs1Sample);
-      expect(parsed.name).toBe('CentralSpy Pacific Theater');
+      expect(parsed.name).toBe('mohPA Pacific Theater');
       expect(parsed.mapName).toBe('Henderson Airfield');
       expect(parsed.gameMode).toBe('Invader');
       expect(parsed.currentPlayers).toBe(2);

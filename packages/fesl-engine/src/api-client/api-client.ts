@@ -1,5 +1,5 @@
 import { config } from '../config/config.js';
-import { PersonaInfo, UserAccountInfo } from '@centralspy/shared';
+import { PersonaInfo, UserAccountInfo } from '@mohpa/shared';
 
 export interface ValidateAuthResponse {
   valid: boolean;
@@ -27,7 +27,7 @@ export class ApiClient {
     const defaultUser: UserAccountInfo = {
       userId: 1,
       username: 'admin',
-      email: 'admin@centralspy.local',
+      email: 'admin@mohpa.local',
       country: 'US',
       language: 'en',
       dobDay: 1,
@@ -39,7 +39,7 @@ export class ApiClient {
     };
     this.mockUsers.set('1', defaultUser);
     this.mockUsers.set('admin', defaultUser);
-    this.mockUsers.set('admin@centralspy.local', defaultUser);
+    this.mockUsers.set('admin@mohpa.local', defaultUser);
 
     this.mockPersonas.set('1', [
       {
@@ -115,7 +115,7 @@ export class ApiClient {
     const user = this.mockUsers.get(identifier.toLowerCase()) || {
       userId: Math.abs(hashString(identifier)) % 100000 || 1,
       username: identifier,
-      email: `${identifier}@centralspy.local`,
+      email: `${identifier}@mohpa.local`,
       country: 'US',
       language: 'en',
       dobDay: 15,
@@ -228,7 +228,7 @@ export class ApiClient {
     return {
       userId,
       username: `User_${userIdStr}`,
-      email: `user${userIdStr}@centralspy.local`,
+      email: `user${userIdStr}@mohpa.local`,
       country: 'US',
       language: 'en',
       dobDay: 1,

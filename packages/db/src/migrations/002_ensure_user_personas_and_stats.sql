@@ -1,5 +1,5 @@
 -- Migration 002: Ensure all registered users have default MOHPA personas and persona_stats
--- CentralSpy: Automatically enlist default soldier persona for every registered user
+-- mohPA: Automatically enlist default soldier persona for every registered user
 
 -- 1. Create a default persona for any registered user who does not yet have a persona for 'mohpa'
 INSERT INTO personas (user_id, game_slug, name, is_active)

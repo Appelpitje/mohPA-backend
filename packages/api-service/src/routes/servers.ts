@@ -1,9 +1,9 @@
 /**
- * CentralSpy Game Servers REST Routes (/api/v1/servers)
+ * mohPA Game Servers REST Routes (/api/v1/servers)
  */
 
 import { FastifyPluginAsync } from 'fastify';
-import { getGameConfig, queryGameServer, resolveIpLocation } from '@centralspy/shared';
+import { getGameConfig, queryGameServer, resolveIpLocation } from '@mohpa/shared';
 
 export const serverRoutes: FastifyPluginAsync = async (fastify) => {
   // Public server browser list

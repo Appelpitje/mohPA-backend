@@ -1,5 +1,5 @@
 import * as crypto from 'node:crypto';
-import { FeslPacket, FESL_TXN } from '@centralspy/shared';
+import { FeslPacket, FESL_TXN } from '@mohpa/shared';
 import {
   FeslHandlerContext,
   getPacketString,
@@ -196,7 +196,7 @@ export async function handleAcct(ctx: FeslHandlerContext): Promise<Record<string
         dobDay: user?.dobDay || 1,
         dobMonth: user?.dobMonth || 1,
         dobYear: user?.dobYear || 1990,
-        email: user?.email || `user${userId}@centralspy.local`,
+        email: user?.email || `user${userId}@mohpa.local`,
         language: user?.language || 'en',
         userId,
         zipCode: user?.zipCode || '10001',

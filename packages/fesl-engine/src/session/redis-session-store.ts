@@ -1,6 +1,6 @@
 import * as crypto from 'node:crypto';
 import Redis from 'ioredis';
-import { FeslSessionData } from '@centralspy/shared';
+import { FeslSessionData } from '@mohpa/shared';
 import { SessionStore } from './types.js';
 import { config } from '../config/config.js';
 

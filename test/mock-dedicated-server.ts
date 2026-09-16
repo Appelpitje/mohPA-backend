@@ -1,5 +1,5 @@
 /**
- * CentralSpy Standalone Mock Dedicated Game Server
+ * mohPA Standalone Mock Dedicated Game Server
  * Simulates an official BF2142/EA dedicated server hosting games on FESL (TLS) and Theater (TCP).
  */
 
@@ -14,7 +14,7 @@ import {
   FESL_TXN,
   THEATER_SUBSYSTEMS,
   DecodedPacket,
-} from '@centralspy/shared';
+} from '@mohpa/shared';
 
 export interface MockDedicatedServerOptions {
   feslHost?: string;
@@ -89,7 +89,7 @@ export class MockDedicatedServer extends EventEmitter {
     this.feslPort = options.feslPort || 18051;
     this.theaterHost = options.theaterHost || '127.0.0.1';
     this.theaterPort = options.theaterPort || 18056;
-    this.serverName = options.serverName || 'CentralSpy MOHPA Dedicated Server [Ranked]';
+    this.serverName = options.serverName || 'mohPA Dedicated Server [Ranked]';
     this.gameSlug = options.gameSlug || 'mohpa';
     this.gameIp = options.gameIp || '127.0.0.1';
     this.gamePort = options.gamePort || 13200;
@@ -623,7 +623,7 @@ if (
   (process.argv[1].endsWith('mock-dedicated-server.ts') || process.argv[1].endsWith('mock-dedicated-server.js'))
 ) {
   const server = new MockDedicatedServer();
-  console.log('=== Starting CentralSpy Mock Dedicated Game Server ===');
+  console.log('=== Starting mohPA Mock Dedicated Game Server ===');
   server
     .start()
     .then((gid) => {

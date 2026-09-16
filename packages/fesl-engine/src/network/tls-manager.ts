@@ -122,7 +122,7 @@ export class TlsManager {
   /**
    * Generates a self-signed X.509 certificate and RSA private key in PEM format.
    */
-  public generateSelfSignedCert(commonName = 'centralspy.ea.com'): CertificatePair {
+  public generateSelfSignedCert(commonName = 'mohpa.ea.com'): CertificatePair {
     // Generate RSA 1024 key pair (1024-bit required by legacy EA DirtySDK clients like MOHPA)
     const { privateKey, publicKey } = crypto.generateKeyPairSync('rsa', {
       modulusLength: 1024,
@@ -200,7 +200,7 @@ function createSelfSignedX509Pem(commonName: string, publicKeyPem: string, priva
     'mohpa.theater.ea.com',
     'eagames.fesl.ea.com',
     'demangler.ea.com',
-    'centralspy.ea.com',
+    'mohpa.ea.com',
     'portal.mohpa.net',
     'localhost',
   ];

@@ -5,7 +5,7 @@ import { ApiClient } from '../src/api-client/api-client.js';
 import { LobbyManager } from '../src/theater/lobby-manager.js';
 import { TheaterRouter } from '../src/theater/router.js';
 import { FeslConnection } from '../src/network/connection.js';
-import { FeslPacket, THEATER_SUBSYSTEMS } from '@centralspy/shared';
+import { FeslPacket, THEATER_SUBSYSTEMS } from '@mohpa/shared';
 
 describe('Theater Subsystem Handlers & Router', () => {
   let sessionStore: RedisSessionStore;

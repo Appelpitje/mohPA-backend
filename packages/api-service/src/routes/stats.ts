@@ -1,9 +1,9 @@
 /**
- * CentralSpy Stats & Leaderboards REST Routes (/api/v1/stats)
+ * mohPA Stats & Leaderboards REST Routes (/api/v1/stats)
  */
 
 import { FastifyPluginAsync } from 'fastify';
-import { getGameConfig, listGameConfigs, GameConfig } from '@centralspy/shared';
+import { getGameConfig, listGameConfigs, GameConfig } from '@mohpa/shared';
 
 export const statsRoutes: FastifyPluginAsync = async (fastify) => {
   // Leaderboard for a game

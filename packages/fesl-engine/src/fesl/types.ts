@@ -1,4 +1,4 @@
-import { FeslPacket } from '@centralspy/shared';
+import { FeslPacket } from '@mohpa/shared';
 import { FeslConnection } from '../network/connection.js';
 import { SessionStore } from '../session/types.js';
 import { ApiClient } from '../api-client/api-client.js';

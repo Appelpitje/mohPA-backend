@@ -1,9 +1,9 @@
 /**
- * @centralspy/api-service - Server Startup Entry Point
+ * @mohpa/api-service - Server Startup Entry Point
  */
 
 import dotenv from 'dotenv';
-import { getDbClient, runMigrations, closeDbClient } from '@centralspy/db';
+import { getDbClient, runMigrations, closeDbClient } from '@mohpa/db';
 import { buildServer } from './server.js';
 
 dotenv.config();
@@ -38,7 +38,7 @@ async function start() {
 
   try {
     await server.listen({ port, host });
-    console.log(`[API Service] CentralSpy API Service running at http://${host}:${port}`);
+    console.log(`[API Service] mohPA API Service running at http://${host}:${port}`);
     console.log(`[API Service] WebSocket live inspector listening at ws://${host}:${port}/ws/inspector`);
   } catch (err: any) {
     server.log.error(err);

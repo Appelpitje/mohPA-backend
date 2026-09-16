@@ -4,8 +4,8 @@
     "outDir": "./dist",
     "rootDir": "./src",
     "paths": {
-      "@centralspy/shared": ["../shared/dist/index.d.ts"],
-      "@centralspy/shared/*": ["../shared/dist/*"]
+      "@mohpa/shared": ["../shared/dist/index.d.ts"],
+      "@mohpa/shared/*": ["../shared/dist/*"]
     }
   },
   "include": ["src/**/*"]

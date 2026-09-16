@@ -1,9 +1,9 @@
 /**
- * CentralSpy WebSocket Live Protocol Inspector Hub
+ * mohPA WebSocket Live Protocol Inspector Hub
  */
 
 import { WebSocket } from 'ws';
-import { PacketInspectorEvent } from '@centralspy/shared';
+import { PacketInspectorEvent } from '@mohpa/shared';
 
 export interface InspectorFilter {
   protocol?: 'FESL' | 'THEATER';
@@ -39,7 +39,7 @@ export class InspectorHub {
     // Send initial welcome & stats
     this.sendJson(ws, {
       type: 'CONNECTED',
-      message: 'CentralSpy Live Packet Inspector Connected',
+      message: 'mohPA Live Packet Inspector Connected',
       historyCount: this.packetHistory.length,
       activeClients: this.clients.size
     });

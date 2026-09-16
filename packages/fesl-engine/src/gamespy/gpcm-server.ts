@@ -127,7 +127,7 @@ export class GpcmServer {
         nick,
         uniquenick: nick,
         userid: profileId,
-        email: `${nick}@centralspy.local`,
+        email: `${nick}@mohpa.local`,
         sig: crypto.randomBytes(16).toString('hex'),
         id: fields.id || '2',
       }), 'ascii');

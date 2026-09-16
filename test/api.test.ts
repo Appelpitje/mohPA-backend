@@ -1,9 +1,9 @@
 import { describe, it, expect, beforeAll, afterAll } from 'vitest';
 import { FastifyInstance } from 'fastify';
-import { MemoryDbClient } from '@centralspy/db';
-import { buildServer } from '@centralspy/api-service';
+import { MemoryDbClient } from '@mohpa/db';
+import { buildServer } from '@mohpa/api-service';
 
-describe('CentralSpy API Service Full REST & IPC Test Suite', () => {
+describe('mohPA API Service Full REST & IPC Test Suite', () => {
   let app: FastifyInstance;
   let db: MemoryDbClient;
   let authToken: string;
@@ -44,7 +44,7 @@ describe('CentralSpy API Service Full REST & IPC Test Suite', () => {
       const res = await app.inject({ method: 'GET', url: '/' });
       expect(res.statusCode).toBe(200);
       const body = JSON.parse(res.body);
-      expect(body.name).toBe('CentralSpy API Service');
+      expect(body.name).toBe('mohPA API Service');
       expect(body.version).toBeDefined();
     });
   });
@@ -65,7 +65,7 @@ describe('CentralSpy API Service Full REST & IPC Test Suite', () => {
         url: '/api/v1/auth/register',
         payload: {
           username: 'TestCommander',
-          email: 'commander@centralspy.net',
+          email: 'commander@mohpa.net',
           password: 'SecretPassword123',
           countryCode: 'US',
           dob: '1990-05-15',
@@ -77,7 +77,7 @@ describe('CentralSpy API Service Full REST & IPC Test Suite', () => {
       expect(body.token).toBeDefined();
       expect(body.user).toBeDefined();
       expect(body.user.username).toBe('TestCommander');
-      expect(body.user.email).toBe('commander@centralspy.net');
+      expect(body.user.email).toBe('commander@mohpa.net');
       expect(body.user.countryCode).toBe('US');
       expect(body.user.passwordHash).toBeUndefined(); // Sensitive data omitted
 
@@ -91,7 +91,7 @@ describe('CentralSpy API Service Full REST & IPC Test Suite', () => {
         url: '/api/v1/auth/register',
         payload: {
           username: 'TestCommander',
-          email: 'another@centralspy.net',
+          email: 'another@mohpa.net',
           password: 'SecretPassword123',
         },
       });
@@ -104,7 +104,7 @@ describe('CentralSpy API Service Full REST & IPC Test Suite', () => {
         url: '/api/v1/auth/register',
         payload: {
           username: 'AnotherCommander',
-          email: 'commander@centralspy.net',
+          email: 'commander@mohpa.net',
           password: 'SecretPassword123',
         },
       });
@@ -116,7 +116,7 @@ describe('CentralSpy API Service Full REST & IPC Test Suite', () => {
         method: 'POST',
         url: '/api/v1/auth/login',
         payload: {
-          identifier: 'commander@centralspy.net',
+          identifier: 'commander@mohpa.net',
           password: 'SecretPassword123',
         },
       });
@@ -140,7 +140,7 @@ describe('CentralSpy API Service Full REST & IPC Test Suite', () => {
       expect(res.statusCode).toBe(200);
       const body = JSON.parse(res.body);
       expect(body.token).toBeDefined();
-      expect(body.user.email).toBe('commander@centralspy.net');
+      expect(body.user.email).toBe('commander@mohpa.net');
     });
 
     it('POST /api/v1/auth/login rejects wrong password', async () => {
@@ -565,7 +565,7 @@ describe('CentralSpy API Service Full REST & IPC Test Suite', () => {
       // Create admin user in database
       const adminUser = await db.query(
         `INSERT INTO users (username, email, password_hash, is_admin)
-         VALUES ('RootAdmin', 'admin@centralspy.net', 'hash', TRUE)
+         VALUES ('RootAdmin', 'admin@mohpa.net', 'hash', TRUE)
          RETURNING *`
       );
       adminId = adminUser.rows[0].id;
@@ -573,7 +573,7 @@ describe('CentralSpy API Service Full REST & IPC Test Suite', () => {
       adminToken = app.jwt.sign({
         id: adminId,
         username: 'RootAdmin',
-        email: 'admin@centralspy.net',
+        email: 'admin@mohpa.net',
         isAdmin: true,
       });
     });

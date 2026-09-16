@@ -1,6 +1,6 @@
 import * as net from 'node:net';
 import * as tls from 'node:tls';
-import { FeslPacket, FeslSessionData, ClientType, encodePacket, serializeKV } from '@centralspy/shared';
+import { FeslPacket, FeslSessionData, ClientType, encodePacket, serializeKV } from '@mohpa/shared';
 import { InspectorHub } from '../inspector/inspector-hub.js';
 
 export interface ConnectionOptions {

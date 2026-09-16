@@ -15,8 +15,8 @@ COPY packages/shared packages/shared
 COPY packages/fesl-engine packages/fesl-engine
 
 # Build packages
-RUN npm run build --workspace=@centralspy/shared
-RUN npm run build --workspace=@centralspy/fesl-engine
+RUN npm run build --workspace=@mohpa/shared
+RUN npm run build --workspace=@mohpa/fesl-engine
 
 FROM node:22-alpine AS runner
 

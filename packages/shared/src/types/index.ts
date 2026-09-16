@@ -1,5 +1,5 @@
 /**
- * CentralSpy Shared Type Definitions
+ * mohPA Shared Type Definitions
  */
 
 export interface User {

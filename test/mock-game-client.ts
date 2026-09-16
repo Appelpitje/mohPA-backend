@@ -1,5 +1,5 @@
 /**
- * CentralSpy Standalone Mock Game Client
+ * mohPA Standalone Mock Game Client
  * Simulates a full Battlefield / EA game client connecting to FESL (TLS) and Theater (TCP).
  */
 
@@ -12,7 +12,7 @@ import {
   FESL_TXN,
   THEATER_SUBSYSTEMS,
   DecodedPacket,
-} from '@centralspy/shared';
+} from '@mohpa/shared';
 
 export interface MockGameClientOptions {
   feslHost?: string;
@@ -642,7 +642,7 @@ if (
   (process.argv[1].endsWith('mock-game-client.ts') || process.argv[1].endsWith('mock-game-client.js'))
 ) {
   const client = new MockGameClient();
-  console.log('=== Starting CentralSpy Mock Game Client Simulation ===');
+  console.log('=== Starting mohPA Mock Game Client Simulation ===');
   client
     .runFullFlow()
     .then((result) => {

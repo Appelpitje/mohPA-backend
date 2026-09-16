@@ -106,29 +106,37 @@ export class ApiClient {
           user: userObj,
           error: data.error,
         };
+      } else {
+        // API service is online and rejected credentials (e.g. 401 Invalid credentials)
+        const data = await res.json().catch(() => ({})) as any;
+        return {
+          valid: false,
+          error: data.error || (res.status === 401 ? 'Invalid username or password' : 'Authentication failed'),
+        };
       }
-    } catch {
-      // API service offline: fallback to mock credentials for local testing
+    } catch (err) {
+      // API service offline / unreachable: fallback to mock credentials for local testing
+      console.warn(`[ApiClient] Failed to reach api-service at ${this.baseUrl}:`, (err as Error).message);
+
+      // Offline / dev fallback for local tests
+      const user = this.mockUsers.get(identifier.toLowerCase()) || {
+        userId: Math.abs(hashString(identifier)) % 100000 || 1,
+        username: identifier,
+        email: `${identifier}@mohpa.local`,
+        country: 'US',
+        language: 'en',
+        dobDay: 15,
+        dobMonth: 6,
+        dobYear: 1995,
+        isAdmin: false,
+        isBanned: false,
+      };
+
+      return {
+        valid: true,
+        user,
+      };
     }
-
-    // Offline / dev fallback: if password is valid or mock user matches
-    const user = this.mockUsers.get(identifier.toLowerCase()) || {
-      userId: Math.abs(hashString(identifier)) % 100000 || 1,
-      username: identifier,
-      email: `${identifier}@mohpa.local`,
-      country: 'US',
-      language: 'en',
-      dobDay: 15,
-      dobMonth: 6,
-      dobYear: 1995,
-      isAdmin: false,
-      isBanned: false,
-    };
-
-    return {
-      valid: true,
-      user,
-    };
   }
 
   /**

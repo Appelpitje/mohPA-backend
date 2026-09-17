@@ -131,14 +131,14 @@ export class GsStatsServer {
 
     socket.on('data', (chunk) => {
       buffer = Buffer.concat([buffer, chunk]);
-      console.log(`[GsStats] [${remote}] RAW ${chunk.length}b hex=${chunk.toString('hex')}`);
+      console.log(`[GsStats] [${remote}] RAW ${chunk.length}b`);
       const finalBuf = Buffer.from(FINAL, 'ascii');
       while (true) {
         const finalIdx = buffer.indexOf(finalBuf);
         const payload = finalIdx >= 0 ? buffer.subarray(0, finalIdx) : buffer;
         if (finalIdx < 0 && payload.length < 8) break;
         const decoded = gstatsXcode(payload).toString('latin1');
-        console.log(`[GsStats] [${remote}] decoded=${JSON.stringify(decoded)}`);
+        console.log(`[GsStats] [${remote}] decoded ${decoded.length}b`);
         if (!sentSesskey && (decoded.includes('\\auth\\') || decoded.includes('\\gamename\\'))) {
           sentSesskey = true;
           const reply = buildGstatsSesskey(sesskey);

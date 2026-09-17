@@ -1,6 +1,7 @@
 import { WebSocketServer, WebSocket } from 'ws';
 import { InspectorPacketEvent, InspectorConnectionEvent } from '@mohpa/shared';
 import { config } from '../config/config.js';
+import { redactSensitive, redactSensitiveString } from '../utils/redact.js';
 
 export class InspectorHub {
   private static instance: InspectorHub;
@@ -57,8 +58,15 @@ export class InspectorHub {
    * Broadcasts a packet event to all connected inspector UI clients.
    */
   public broadcastPacket(event: InspectorPacketEvent): void {
+    const sanitized: InspectorPacketEvent = {
+      ...event,
+      lkey: event.lkey ? '[REDACTED]' : event.lkey,
+      payload: redactSensitive(event.payload) as Record<string, any>,
+      rawPayload: redactSensitiveString(event.rawPayload || ''),
+    };
+
     // Add to ring buffer
-    this.recentPackets.push(event);
+    this.recentPackets.push(sanitized);
     if (this.recentPackets.length > this.maxHistory) {
       this.recentPackets.shift();
     }
@@ -67,7 +75,7 @@ export class InspectorHub {
 
     const payload = JSON.stringify({
       type: 'packet',
-      data: event,
+      data: sanitized,
     });
 
     for (const client of this.clients) {

@@ -2,6 +2,7 @@ import * as net from 'node:net';
 import * as crypto from 'node:crypto';
 import { gpClientResponse, gpServerProof } from './gp-proof.js';
 import { getGsPreauth, toGsNumericId } from './ticket-store.js';
+import { redactSensitive } from '../utils/redact.js';
 
 const FINAL = '\\final\\';
 
@@ -83,7 +84,7 @@ export class GpcmServer {
     socket.write(hello, 'ascii');
 
     socket.on('data', (chunk) => {
-      console.log(`[GpcmServer] [${remote}] RAW ${chunk.length}b hex=${chunk.toString('hex')} ascii=${JSON.stringify(chunk.toString('latin1'))}`);
+      console.log(`[GpcmServer] [${remote}] RAW ${chunk.length}b`);
       buffer += chunk.toString('latin1');
       let idx: number;
       while ((idx = buffer.indexOf(FINAL)) !== -1) {
@@ -105,7 +106,7 @@ export class GpcmServer {
   private handlePacket(socket: net.Socket, raw: string, serverChallenge: string, remote: string): void {
     const fields = parseGsPacket(raw);
     const keys = Object.keys(fields);
-    console.log(`[GpcmServer] [${remote}] RECV`, keys.join(','), JSON.stringify(fields));
+    console.log(`[GpcmServer] [${remote}] RECV`, keys.join(','), JSON.stringify(redactSensitive(fields)));
 
     if ('login' in fields) {
       this.handleLogin(socket, fields, serverChallenge, remote);
@@ -150,7 +151,7 @@ export class GpcmServer {
     const preauth = authtoken ? getGsPreauth(authtoken) : undefined;
 
     if (!preauth || !preauth.username) {
-      console.warn(`[GpcmServer] [${remote}] Invalid, missing or unauthenticated authtoken=${authtoken} — rejecting login`);
+      console.warn(`[GpcmServer] [${remote}] Invalid, missing or unauthenticated authtoken — rejecting login`);
       socket.write(encodeGs({
         error: '',
         err: 260,
@@ -170,7 +171,7 @@ export class GpcmServer {
     const user = authtoken || nick;
     const expected = gpClientResponse(partnerChallenge, user, clientChallenge, serverChallenge);
     if (clientResponse && clientResponse !== expected) {
-      console.warn(`[GpcmServer] [${remote}] Proof mismatch expected=${expected} got=${clientResponse}`);
+      console.warn(`[GpcmServer] [${remote}] Proof mismatch`);
     }
 
     const proof = gpServerProof(partnerChallenge, user, clientChallenge, serverChallenge);

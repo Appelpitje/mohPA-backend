@@ -70,7 +70,7 @@ export class GsPspServer {
     let buffer = '';
     socket.on('data', (chunk) => {
       const text = chunk.toString('latin1');
-      console.log(`[GsPsp] [${remote}] << ${JSON.stringify(text.slice(0, 180))}`);
+      console.log(`[GsPsp] [${remote}] << ${text.length}b`);
       buffer += text;
       let idx: number;
       while ((idx = buffer.indexOf(FINAL)) !== -1) {

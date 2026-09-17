@@ -273,7 +273,7 @@ export class Ssl2Socket extends Duplex {
       encKey
     );
 
-    console.log(`[Ssl2Socket] Decrypted master key: length=${this.masterKey.length}, hex=${this.masterKey.toString('hex')}`);
+    console.log(`[Ssl2Socket] Decrypted master key: length=${this.masterKey.length}`);
 
     if (this.masterKey.length !== 16) {
       throw new Error(`Invalid decrypted master key length: ${this.masterKey.length} (expected 16)`);
@@ -285,7 +285,7 @@ export class Ssl2Socket extends Duplex {
     this.writeKey = this.deriveKey(this.masterKey, '0', this.challenge!, this.connId!);
     this.readKey = this.deriveKey(this.masterKey, '1', this.challenge!, this.connId!);
 
-    console.log(`[Ssl2Socket] Keys derived: writeKey=${this.writeKey.toString('hex')}, readKey=${this.readKey.toString('hex')}`);
+    console.log(`[Ssl2Socket] Session keys derived`);
 
     this.readCipher = new Rc4Cipher(this.readKey);
     this.writeCipher = new Rc4Cipher(this.writeKey);
@@ -314,7 +314,7 @@ export class Ssl2Socket extends Duplex {
    * Decrypts and verifies CLIENT_FINISHED, then sends SERVER_FINISHED.
    */
   private handleClientFinished(record: Buffer): void {
-    console.log(`[Ssl2Socket] Raw record in WAIT_CLIENT_FINISHED (${record.length} bytes): ${record.toString('hex')}`);
+    console.log(`[Ssl2Socket] Raw record in WAIT_CLIENT_FINISHED (${record.length} bytes)`);
 
     // Check if client sent an unencrypted SSL2_MT_ERROR
     if (record.length === 3 && record[0] === SSL2_MT.ERROR) {
@@ -326,16 +326,14 @@ export class Ssl2Socket extends Duplex {
     const mac = dec.subarray(0, 16);
     const payload = dec.subarray(16);
 
-    console.log(`[Ssl2Socket] Decrypted record: ${dec.toString('hex')}`);
-    console.log(`[Ssl2Socket] MAC received: ${mac.toString('hex')}`);
-    console.log(`[Ssl2Socket] Payload received: msgType=${payload[0]} (0x${payload[0]?.toString(16)}), hex=${payload.toString('hex')}`);
+    console.log(`[Ssl2Socket] Payload received: msgType=${payload[0]} (0x${payload[0]?.toString(16)}), length=${payload.length}`);
 
     const expectedMac = this.computeMac(this.readKey!, payload, this.readSeq);
-    console.log(`[Ssl2Socket] Expected MAC (seq=${this.readSeq}): ${expectedMac.toString('hex')}`);
+    console.log(`[Ssl2Socket] Verifying CLIENT_FINISHED MAC (seq=${this.readSeq})`);
 
     if (!mac.equals(expectedMac)) {
       // Also check with other sequence number or alternative derivation
-      console.warn(`[Ssl2Socket] MAC mismatch! Expected: ${expectedMac.toString('hex')}, Received: ${mac.toString('hex')}`);
+      console.warn(`[Ssl2Socket] MAC mismatch`);
       throw new Error('CLIENT_FINISHED MAC verification failed');
     }
     this.readSeq++;

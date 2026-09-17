@@ -4,6 +4,7 @@ import { FeslConnection } from '../network/connection.js';
 import { SessionStore } from '../session/types.js';
 import { ApiClient } from '../api-client/api-client.js';
 import { FeslCommandHandler, FeslHandlerContext, getPacketTxn } from './types.js';
+import { redactSensitive } from '../utils/redact.js';
 import {
   handleFsys,
   handleAcct,
@@ -104,7 +105,7 @@ export class FeslRouter extends EventEmitter {
       return;
     }
 
-    console.log(`[FeslRouter] [${connection.id}] RECV ${packet.subsystem} (0x${packet.subtype.toString(16)}) TXN=${txn}:`, JSON.stringify(packet.payload));
+    console.log(`[FeslRouter] [${connection.id}] RECV ${packet.subsystem} (0x${packet.subtype.toString(16)}) TXN=${txn}:`, JSON.stringify(redactSensitive(packet.payload)));
 
     try {
       const result = await handler(ctx);
@@ -123,7 +124,7 @@ export class FeslRouter extends EventEmitter {
         packet
       );
 
-      console.log(`[FeslRouter] [${connection.id}] SEND ${packet.subsystem} (0x${responseSubtype.toString(16)}) TXN=${txn}:`, JSON.stringify(responsePayload));
+      console.log(`[FeslRouter] [${connection.id}] SEND ${packet.subsystem} (0x${responseSubtype.toString(16)}) TXN=${txn}:`, JSON.stringify(redactSensitive(responsePayload)));
       connection.sendPacket({
         subsystem: packet.subsystem,
         subtype: responseSubtype,

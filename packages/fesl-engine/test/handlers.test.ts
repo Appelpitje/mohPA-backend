@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeEach, afterEach } from 'vitest';
+import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import * as net from 'node:net';
 import { RedisSessionStore } from '../src/session/redis-session-store.js';
 import { ApiClient } from '../src/api-client/api-client.js';
@@ -179,6 +179,35 @@ describe('FESL Subsystem Handlers & Router', () => {
     // Connection should now have an attached session
     expect(connection.session).toBeDefined();
     expect(connection.session?.lkey).toBe(handledResponse.lkey);
+  });
+
+  it('does not log plaintext login password or session lkey', async () => {
+    const secret = 'password123';
+    const lines: string[] = [];
+    const spy = vi.spyOn(console, 'log').mockImplementation((...args: unknown[]) => {
+      lines.push(args.map((a) => (typeof a === 'string' ? a : JSON.stringify(a))).join(' '));
+    });
+
+    try {
+      await router.handlePacket(connection, {
+        subsystem: FESL_SUBSYSTEMS.ACCT,
+        subtype: 0x00000001,
+        packetLength: 60,
+        payload: {
+          TXN: FESL_TXN.NU_LOGIN,
+          nuid: 'player1',
+          password: secret,
+        },
+      });
+    } finally {
+      spy.mockRestore();
+    }
+
+    const dumped = lines.join('\n');
+    expect(connection.session?.lkey).toBeDefined();
+    expect(dumped).toContain('NuLogin');
+    expect(dumped).not.toContain(secret);
+    expect(dumped).not.toContain(connection.session!.lkey);
   });
 
   it('handles acct.NuGetPersonas and acct.NuLoginPersona', async () => {

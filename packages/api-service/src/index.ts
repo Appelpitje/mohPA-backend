@@ -31,7 +31,7 @@ async function start() {
     const pollInterval = process.env.QUERY_POLLER_INTERVAL_MS
       ? parseInt(process.env.QUERY_POLLER_INTERVAL_MS, 10)
       : 30000;
-    queryPoller = new ServerQueryPoller(server.serverRepo, pollInterval);
+    queryPoller = new ServerQueryPoller(server.serverRepo, server.serverHistoryRepo, pollInterval);
     queryPoller.start();
     console.log(`[API Service] Dedicated server UDP query poller active (interval: ${pollInterval}ms)`);
   }

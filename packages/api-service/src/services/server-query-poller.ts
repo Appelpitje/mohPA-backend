@@ -4,7 +4,7 @@
  * scoreboards, and online status in sync with authentic game server binaries.
  */
 
-import { GameServerRepository } from '@mohpa/db';
+import { GameServerRepository, ServerHistoryRepository } from '@mohpa/db';
 import { queryGameServer, resolveIpLocation } from '@mohpa/shared';
 
 export class ServerQueryPoller {
@@ -14,6 +14,7 @@ export class ServerQueryPoller {
 
   constructor(
     private serverRepo: GameServerRepository,
+    private historyRepo?: ServerHistoryRepository,
     intervalMs = 30000
   ) {
     this.intervalMs = intervalMs;
@@ -103,6 +104,24 @@ export class ServerQueryPoller {
                 lastQueried: new Date().toISOString(),
               },
             });
+
+            if (this.historyRepo) {
+              await this.historyRepo.recordSnapshot(server.id, {
+                playerCount: res.currentPlayers,
+                maxPlayers: res.maxPlayers || server.maxPlayers,
+                isOnline: true,
+                mapName: res.mapName || server.mapName,
+                gameMode: res.gameMode || server.gameMode,
+              });
+              if (res.players && res.players.length > 0) {
+                await this.historyRepo.recordPlayerSessions(
+                  server.id,
+                  res.players,
+                  Math.round(this.intervalMs / 1000)
+                );
+              }
+            }
+
             updatedCount++;
           } else {
             // Only set offline if last heartbeat/query is stale (> 90 seconds)
@@ -111,6 +130,15 @@ export class ServerQueryPoller {
 
             if (isStale && server.isOnline) {
               await this.serverRepo.setOnlineStatus(server.id, false);
+              if (this.historyRepo) {
+                await this.historyRepo.recordSnapshot(server.id, {
+                  playerCount: 0,
+                  maxPlayers: server.maxPlayers,
+                  isOnline: false,
+                  mapName: server.mapName,
+                  gameMode: server.gameMode,
+                });
+              }
               updatedCount++;
             }
           }

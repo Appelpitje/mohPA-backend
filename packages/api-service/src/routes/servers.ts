@@ -3,7 +3,7 @@
  */
 
 import { FastifyPluginAsync } from 'fastify';
-import { getGameConfig, queryGameServer, resolveIpLocation } from '@mohpa/shared';
+import { getGameConfig, queryGameServer, resolveIpLocation, ServerHistoryRange } from '@mohpa/shared';
 
 function toPublicServer<T extends { secretKey?: string }>(server: T): Omit<T, 'secretKey'> {
   const { secretKey: _secretKey, ...rest } = server;
@@ -122,6 +122,31 @@ export const serverRoutes: FastifyPluginAsync = async (fastify) => {
     });
   });
 
+  // Get advanced server history stats & charts (24h, 7d, 30d)
+  fastify.get('/:id/history', async (request, reply) => {
+    const { id } = request.params as any;
+    const query = (request.query as any) || {};
+    const rangeParam = query.range || query.timeframe || '24h';
+    const validRanges: ServerHistoryRange[] = ['24h', '7d', '30d'];
+    const range: ServerHistoryRange = validRanges.includes(rangeParam) ? rangeParam : '24h';
+
+    const server = await fastify.serverRepo.findById(id);
+    if (!server) {
+      return reply.code(404).send({ error: 'Server not found' });
+    }
+
+    if (query.seed === 'true') {
+      await fastify.serverHistoryRepo.seedSampleHistory(id, range === '30d' ? 30 : range === '7d' ? 7 : 2);
+    }
+
+    const history = await fastify.serverHistoryRepo.getServerHistory(id, range);
+    if (!history) {
+      return reply.code(404).send({ error: 'Server not found' });
+    }
+
+    return reply.send(history);
+  });
+
   // On-demand UDP query probe for a specific server
   fastify.post('/:id/query', async (request, reply) => {
     const { id } = request.params as any;
@@ -174,6 +199,19 @@ export const serverRoutes: FastifyPluginAsync = async (fastify) => {
         maxPlayers: queryResult.maxPlayers || server.maxPlayers,
         details: updatedDetails,
       });
+
+      if (fastify.serverHistoryRepo) {
+        await fastify.serverHistoryRepo.recordSnapshot(server.id, {
+          playerCount: queryResult.currentPlayers,
+          maxPlayers: queryResult.maxPlayers || server.maxPlayers,
+          isOnline: true,
+          mapName: queryResult.mapName || server.mapName,
+          gameMode: queryResult.gameMode || server.gameMode,
+        });
+        if (queryResult.players && queryResult.players.length > 0) {
+          await fastify.serverHistoryRepo.recordPlayerSessions(server.id, queryResult.players, 30);
+        }
+      }
 
       const updatedServer = await fastify.serverRepo.findById(id);
       return reply.send({
@@ -375,6 +413,19 @@ export const serverRoutes: FastifyPluginAsync = async (fastify) => {
     if (body.details) metadata.details = body.details;
 
     await fastify.serverRepo.updateHeartbeat(server.id, metadata);
+
+    if (fastify.serverHistoryRepo) {
+      await fastify.serverHistoryRepo.recordSnapshot(server.id, {
+        playerCount: metadata.currentPlayers !== undefined ? Number(metadata.currentPlayers) : (server.currentPlayers || 0),
+        maxPlayers: metadata.maxPlayers !== undefined ? Number(metadata.maxPlayers) : (server.maxPlayers || 64),
+        isOnline: true,
+        mapName: metadata.mapName || server.mapName || '',
+        gameMode: metadata.gameMode || server.gameMode || '',
+      });
+      if (metadata.details?.players && Array.isArray(metadata.details.players)) {
+        await fastify.serverHistoryRepo.recordPlayerSessions(server.id, metadata.details.players, 30);
+      }
+    }
 
     return reply.send({
       success: true,

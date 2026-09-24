@@ -121,6 +121,8 @@ export class MemoryDbClient implements DbClient {
     this.tables.set('persona_stats', []);
     this.tables.set('match_history', []);
     this.tables.set('audit_logs', []);
+    this.tables.set('server_history_snapshots', []);
+    this.tables.set('server_player_sessions', []);
     this.tables.set('_migrations', []);
   }
 
@@ -255,14 +257,48 @@ export class MemoryDbClient implements DbClient {
     }
 
     // Apply basic filter matching from WHERE clause
-    const whereMatch = sql.match(/WHERE\s+(.*?)(ORDER BY|LIMIT|OFFSET|$)/is);
+    const whereMatch = sql.match(/WHERE\s+(.*?)(ORDER BY|LIMIT|OFFSET|GROUP BY|$)/is);
     if (whereMatch) {
       const whereClause = whereMatch[1];
       rows = rows.filter(row => this.evaluateWhere(whereClause, row, params));
     }
 
+    // Handle GROUP BY on server_player_sessions
+    if (tableName === 'server_player_sessions' && sql.toUpperCase().includes('GROUP BY')) {
+      const groups = new Map<string, any>();
+      for (const row of rows) {
+        const key = String(row.player_name || '').toLowerCase();
+        if (!groups.has(key)) {
+          groups.set(key, {
+            player_name: row.player_name,
+            score: Number(row.score || 0),
+            kills: Number(row.kills || 0),
+            deaths: Number(row.deaths || 0),
+            total_duration: Number(row.duration_seconds || 0),
+            session_count: 1,
+            first_seen: row.first_seen,
+            last_seen: row.last_seen,
+          });
+        } else {
+          const g = groups.get(key)!;
+          g.score = Math.max(g.score, Number(row.score || 0));
+          g.kills = Math.max(g.kills, Number(row.kills || 0));
+          g.deaths = Math.max(g.deaths, Number(row.deaths || 0));
+          g.total_duration += Number(row.duration_seconds || 0);
+          g.session_count += 1;
+          if (new Date(row.first_seen).getTime() < new Date(g.first_seen).getTime()) {
+            g.first_seen = row.first_seen;
+          }
+          if (new Date(row.last_seen).getTime() > new Date(g.last_seen).getTime()) {
+            g.last_seen = row.last_seen;
+          }
+        }
+      }
+      rows = Array.from(groups.values());
+    }
+
     // Handle COUNT(*)
-    if (sql.toUpperCase().includes('COUNT(')) {
+    if (sql.toUpperCase().includes('COUNT(') && !sql.toUpperCase().includes('GROUP BY')) {
       return { rows: [{ count: rows.length }] as any, rowCount: 1 };
     }
 
@@ -506,17 +542,24 @@ export class MemoryDbClient implements DbClient {
     if (op === 'IS') {
       return rowVal === targetVal;
     }
+    const isDateCompare =
+      (rowVal instanceof Date || (typeof rowVal === 'string' && !isNaN(Date.parse(rowVal)))) &&
+      (targetVal instanceof Date || (typeof targetVal === 'string' && !isNaN(Date.parse(targetVal))));
+
+    const numRow = isDateCompare ? new Date(rowVal).getTime() : Number(rowVal);
+    const numTarget = isDateCompare ? new Date(targetVal).getTime() : Number(targetVal);
+
     if (op === '<') {
-      return Number(rowVal) < Number(targetVal);
+      return numRow < numTarget;
     }
     if (op === '>') {
-      return Number(rowVal) > Number(targetVal);
+      return numRow > numTarget;
     }
     if (op === '<=') {
-      return Number(rowVal) <= Number(targetVal);
+      return numRow <= numTarget;
     }
     if (op === '>=') {
-      return Number(rowVal) >= Number(targetVal);
+      return numRow >= numTarget;
     }
     if (op === 'LIKE' || op === 'ILIKE') {
       const pattern = String(targetVal).replace(/%/g, '.*');
@@ -534,14 +577,46 @@ export class MemoryDbClient implements DbClient {
       mergeCustom = true;
       clause = clause.slice(0, customIdx).replace(/,\s*$/, '');
     }
-    const assignments = clause.split(',');
+    // Split on comma only outside parentheses
+    const assignments: string[] = [];
+    let current = '';
+    let parenDepth = 0;
+    for (let i = 0; i < clause.length; i++) {
+      const char = clause[i];
+      if (char === '(') parenDepth++;
+      else if (char === ')') parenDepth--;
+      if (char === ',' && parenDepth === 0) {
+        assignments.push(current);
+        current = '';
+      } else {
+        current += char;
+      }
+    }
+    if (current.trim()) assignments.push(current);
+
     for (const assign of assignments) {
       const parts = assign.split('=');
       if (parts.length !== 2) continue;
       const col = parts[0].trim().toLowerCase();
       const rhs = parts[1].trim();
 
-      if (rhs.startsWith('$')) {
+      if (rhs.toUpperCase().startsWith('GREATEST(')) {
+        const innerMatch = rhs.match(/GREATEST\((.*?)\)/i);
+        if (innerMatch) {
+          const args = innerMatch[1].split(',').map(a => a.trim());
+          const vals = args.map(arg => {
+            if (arg.startsWith('$')) {
+              const idx = parseInt(arg.slice(1), 10) - 1;
+              return Number(params[idx] || 0);
+            }
+            if (arg.toLowerCase() === col) {
+              return Number(row[col] || 0);
+            }
+            return Number(arg || 0);
+          });
+          row[col] = Math.max(...vals);
+        }
+      } else if (rhs.startsWith('$')) {
         const idx = parseInt(rhs.slice(1), 10) - 1;
         row[col] = params[idx];
       } else if (rhs.toUpperCase() === 'NOW()') {

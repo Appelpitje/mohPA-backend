@@ -184,3 +184,47 @@ export interface FeslErrorItem {
   fieldError: number | string;
   message?: string;
 }
+
+export type ServerHistoryRange = '24h' | '7d' | '30d';
+
+export interface ServerHistoryChartPoint {
+  timestamp: string;
+  playerCount: number;
+  peakCount?: number;
+  maxPlayers: number;
+  isOnline: boolean;
+  mapName?: string;
+}
+
+export interface ServerHistoryPlayer {
+  name: string;
+  score: number;
+  kills: number;
+  deaths: number;
+  timePlayedSeconds: number;
+  sessionCount: number;
+  firstSeen: string;
+  lastSeen: string;
+  isOnline: boolean;
+}
+
+export interface ServerHistorySummary {
+  currentPlayers: number;
+  peakPlayers: number;
+  peakPlayersTime?: string;
+  averagePlayers: number;
+  minPlayers: number;
+  uptimePercentage: number;
+  totalSessions: number;
+  uniquePlayersCount: number;
+  topMaps: Array<{ mapName: string; occurrences: number; percentage: number }>;
+}
+
+export interface ServerHistoryResponse {
+  server: GameServer;
+  range: ServerHistoryRange;
+  summary: ServerHistorySummary;
+  chart: ServerHistoryChartPoint[];
+  players: ServerHistoryPlayer[];
+}
+

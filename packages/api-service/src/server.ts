@@ -16,6 +16,7 @@ import {
   EntitlementRepository,
   GameServerRepository,
   StatsRepository,
+  ServerHistoryRepository,
   getDbClient
 } from '@mohpa/db';
 
@@ -39,6 +40,7 @@ declare module 'fastify' {
     entitlementRepo: EntitlementRepository;
     serverRepo: GameServerRepository;
     statsRepo: StatsRepository;
+    serverHistoryRepo: ServerHistoryRepository;
     inspectorHub: InspectorHub;
     turnstileSecret: string;
     turnstileRequired: boolean;
@@ -84,6 +86,7 @@ export async function buildServer(options: ServerOptions = {}): Promise<FastifyI
   const entitlementRepo = new EntitlementRepository(dbClient);
   const serverRepo = new GameServerRepository(dbClient);
   const statsRepo = new StatsRepository(dbClient);
+  const serverHistoryRepo = new ServerHistoryRepository(dbClient);
 
   // Decorate server instance
   server.decorate('db', dbClient);
@@ -92,6 +95,7 @@ export async function buildServer(options: ServerOptions = {}): Promise<FastifyI
   server.decorate('entitlementRepo', entitlementRepo);
   server.decorate('serverRepo', serverRepo);
   server.decorate('statsRepo', statsRepo);
+  server.decorate('serverHistoryRepo', serverHistoryRepo);
   server.decorate('inspectorHub', inspectorHub);
   server.decorate('turnstileSecret', turnstileSecret);
   server.decorate('turnstileRequired', turnstileRequired);

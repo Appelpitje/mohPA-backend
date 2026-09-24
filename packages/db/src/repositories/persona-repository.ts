@@ -48,6 +48,24 @@ export class PersonaRepository {
     return this.mapPersona(result.rows[0]);
   }
 
+  public async findByGsProfileId(gsProfileId: number): Promise<Persona | null> {
+    const sql = 'SELECT * FROM personas WHERE gs_profile_id = $1 LIMIT 1';
+    const result = await this.db.query(sql, [gsProfileId]);
+    if (result.rows.length === 0) return null;
+    return this.mapPersona(result.rows[0]);
+  }
+
+  public async setGsProfileId(personaId: string, gsProfileId: number): Promise<void> {
+    await this.db.query(
+      'UPDATE personas SET gs_profile_id = NULL WHERE gs_profile_id = $1 AND id <> $2',
+      [gsProfileId, personaId]
+    );
+    await this.db.query(
+      'UPDATE personas SET gs_profile_id = $1 WHERE id = $2',
+      [gsProfileId, personaId]
+    );
+  }
+
   public async findByName(name: string): Promise<Persona | null> {
     const sql = 'SELECT * FROM personas WHERE LOWER(name) = LOWER($1) LIMIT 1';
     const result = await this.db.query(sql, [name]);

@@ -180,8 +180,81 @@ describe('Database Repositories (In-Memory Engine)', () => {
         durationSeconds: 1200,
         winnerTeam: 1
       });
-      expect(match.id).toBeDefined();
-      expect(match.mapName).toBe('Suez Canal');
+      expect(match?.id).toBeDefined();
+      expect(match?.mapName).toBe('Suez Canal');
+    });
+
+    it('merges custom stats and records one row per stats match key', async () => {
+      const user = await userRepo.create({
+        username: 'CareerSoldier',
+        email: 'career@example.com',
+        passwordHash: 'hash123'
+      });
+      const persona = await personaRepo.create({
+        userId: user.id,
+        gameSlug: 'mohpa',
+        name: 'Col_Voss'
+      });
+
+      const first = await statsRepo.applyMatchReport({
+        statsMatchKey: 'mohpa:7:9',
+        match: {
+          gameSlug: 'mohpa',
+          mapName: 'Guadalcanal',
+          gameMode: 'Invader',
+          durationSeconds: 60,
+          details: { players: [{ name: 'Col_Voss' }] }
+        },
+        players: [{
+          personaId: persona.id,
+          kills: 3,
+          timePlayedSeconds: 60,
+          customStats: { totalNumKills: 3, totalPlayTime_Invader: 60 }
+        }]
+      });
+      const duplicate = await statsRepo.applyMatchReport({
+        statsMatchKey: 'mohpa:7:9',
+        match: {
+          gameSlug: 'mohpa',
+          mapName: 'Guadalcanal',
+          gameMode: 'Invader',
+          durationSeconds: 60
+        },
+        players: [{
+          personaId: persona.id,
+          kills: 3,
+          timePlayedSeconds: 60,
+          customStats: { totalNumKills: 3, totalPlayTime_Invader: 60 }
+        }]
+      });
+      const second = await statsRepo.applyMatchReport({
+        statsMatchKey: 'mohpa:8:10',
+        match: {
+          gameSlug: 'mohpa',
+          mapName: 'Guadalcanal',
+          gameMode: 'Invader',
+          durationSeconds: 60
+        },
+        players: [{
+          personaId: persona.id,
+          kills: 2,
+          timePlayedSeconds: 30,
+          customStats: { totalNumKills: 2, totalPlayTime_Invader: 30 }
+        }]
+      });
+
+      expect(first.inserted).toBe(true);
+      expect(duplicate.inserted).toBe(false);
+      expect(second.inserted).toBe(true);
+      const stats = await statsRepo.getStats(persona.id);
+      expect(stats?.kills).toBe(5);
+      expect(stats?.timePlayedSeconds).toBe(90);
+      expect(stats?.customStats.totalNumKills).toBe(5);
+      expect(stats?.customStats.totalPlayTime_Invader).toBe(90);
+
+      await personaRepo.setGsProfileId(persona.id, 4242);
+      const found = await personaRepo.findByGsProfileId(4242);
+      expect(found?.id).toBe(persona.id);
     });
   });
 });

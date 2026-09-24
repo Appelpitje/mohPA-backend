@@ -30,6 +30,16 @@ export interface CreateMatchHistoryDto {
   durationSeconds?: number;
   winnerTeam?: number | null;
   details?: Record<string, any>;
+  statsMatchKey?: string | null;
+}
+
+export interface MatchPlayerIncrement {
+  personaId: string;
+  kills?: number;
+  deaths?: number;
+  score?: number;
+  timePlayedSeconds?: number;
+  customStats?: Record<string, number>;
 }
 
 export interface CreateAuditLogDto {
@@ -93,7 +103,19 @@ export class StatsRepository {
         deaths = persona_stats.deaths + $4,
         wins = persona_stats.wins + $5,
         losses = persona_stats.losses + $6,
-        time_played_seconds = persona_stats.time_played_seconds + $7
+        time_played_seconds = persona_stats.time_played_seconds + $7,
+        custom_stats = (
+          SELECT COALESCE(jsonb_object_agg(key, value), '{}'::jsonb)
+          FROM (
+            SELECT key, to_jsonb(COALESCE((persona_stats.custom_stats->>key)::bigint, 0)
+                               + COALESCE((EXCLUDED.custom_stats->>key)::bigint, 0)) AS value
+            FROM (
+              SELECT jsonb_object_keys(persona_stats.custom_stats) AS key
+              UNION
+              SELECT jsonb_object_keys(EXCLUDED.custom_stats)
+            ) keys
+          ) summed
+        )
       RETURNING *
     `;
     const params = [
@@ -157,12 +179,13 @@ export class StatsRepository {
     }));
   }
 
-  public async recordMatch(data: CreateMatchHistoryDto): Promise<MatchHistory> {
+  public async recordMatch(data: CreateMatchHistoryDto): Promise<MatchHistory | null> {
     const sql = `
       INSERT INTO match_history (
-        server_id, game_slug, map_name, game_mode, duration_seconds, winner_team, details
+        server_id, game_slug, map_name, game_mode, duration_seconds, winner_team, details, stats_match_key
       )
-      VALUES ($1, $2, $3, $4, $5, $6, $7)
+      VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
+      ON CONFLICT (stats_match_key) DO NOTHING
       RETURNING *
     `;
     const params = [
@@ -172,11 +195,68 @@ export class StatsRepository {
       data.gameMode,
       data.durationSeconds || 0,
       data.winnerTeam !== undefined ? data.winnerTeam : null,
-      JSON.stringify(data.details || {})
+      JSON.stringify(data.details || {}),
+      data.statsMatchKey || null
     ];
 
     const result = await this.db.query(sql, params);
+    if (result.rows.length === 0) return null;
     return this.mapMatch(result.rows[0]);
+  }
+
+  public async applyMatchReport(input: {
+    statsMatchKey: string;
+    match: CreateMatchHistoryDto;
+    players: MatchPlayerIncrement[];
+  }): Promise<{ inserted: boolean; match: MatchHistory | null; updatedStats: PersonaStats[] }> {
+    return this.db.transaction(async (tx) => {
+      const repo = new StatsRepository(tx);
+      const match = await repo.recordMatch({ ...input.match, statsMatchKey: input.statsMatchKey });
+      if (!match) return { inserted: false, match: null, updatedStats: [] };
+      const updatedStats: PersonaStats[] = [];
+      for (const player of input.players) {
+        if (!player.personaId) continue;
+        updatedStats.push(await repo.incrementStats(player.personaId, {
+          score: player.score || 0,
+          kills: player.kills || 0,
+          deaths: player.deaths || 0,
+          timePlayedSeconds: player.timePlayedSeconds || 0,
+          customStats: player.customStats || {}
+        }));
+      }
+      return { inserted: true, match, updatedStats };
+    });
+  }
+
+  public async writeCustomStats(
+    personaId: string,
+    replace: boolean,
+    data: Record<string, number>
+  ): Promise<void> {
+    const ints: Record<string, number> = {};
+    for (const [key, value] of Object.entries(data || {})) {
+      if (!key) continue;
+      const n = Number(value);
+      if (!Number.isFinite(n)) continue;
+      ints[key] = Math.trunc(n);
+    }
+    if (!replace) {
+      await this.incrementStats(personaId, { customStats: ints });
+      return;
+    }
+    const json = JSON.stringify(ints);
+    const updated = await this.db.query(
+      'UPDATE persona_stats SET custom_stats = $2 WHERE persona_id = $1',
+      [personaId, json]
+    );
+    if ((updated.rowCount || 0) === 0) {
+      await this.db.query(
+        `INSERT INTO persona_stats (
+          persona_id, score, kills, deaths, wins, losses, time_played_seconds, custom_stats
+        ) VALUES ($1, 0, 0, 0, 0, 0, 0, $2)`,
+        [personaId, json]
+      );
+    }
   }
 
   public async getMatchHistory(gameSlug?: string, limit = 20): Promise<MatchHistory[]> {

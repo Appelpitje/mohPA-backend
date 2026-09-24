@@ -179,6 +179,81 @@ export class ApiClient {
     return false;
   }
 
+  public async getPersonaByGsProfileId(gsProfileId: number, gameSlug = 'mohpa'): Promise<any | null> {
+    try {
+      const url = new URL(`${this.baseUrl}/internal/personas/lookup`);
+      url.searchParams.set('gsProfileId', String(gsProfileId));
+      if (gameSlug) url.searchParams.set('gameSlug', gameSlug);
+      const res = await fetch(url.toString(), {
+        headers: { 'X-Internal-API-Key': this.apiKey },
+        signal: AbortSignal.timeout(3000),
+      });
+      if (res.ok) return await res.json();
+    } catch (err) {
+      console.error(`[ApiClient] Failed to lookup gs profile ${gsProfileId}:`, (err as Error).message);
+    }
+    return null;
+  }
+
+  public async rememberGsProfile(name: string, gameSlug: string, gsProfileId: number): Promise<boolean> {
+    try {
+      const res = await fetch(`${this.baseUrl}/internal/personas/gs-profile`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'X-Internal-API-Key': this.apiKey,
+        },
+        body: JSON.stringify({ name, gameSlug, gsProfileId }),
+        signal: AbortSignal.timeout(3000),
+      });
+      return res.ok;
+    } catch (err) {
+      console.error(`[ApiClient] rememberGsProfile failed:`, (err as Error).message);
+      return false;
+    }
+  }
+
+  public async reportMatch(body: unknown): Promise<boolean> {
+    try {
+      const res = await fetch(`${this.baseUrl}/internal/stats/report`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'X-Internal-API-Key': this.apiKey,
+          'X-Internal-Key': this.apiKey,
+        },
+        body: JSON.stringify(body),
+        signal: AbortSignal.timeout(3000),
+      });
+      if (!res.ok) {
+        console.error(`[ApiClient] reportMatch HTTP ${res.status}`);
+        return false;
+      }
+      return true;
+    } catch (err) {
+      console.error(`[ApiClient] reportMatch failed:`, (err as Error).message);
+      return false;
+    }
+  }
+
+  public async writePersist(personaId: string, kv: number, data: Record<string, number>): Promise<boolean> {
+    try {
+      const res = await fetch(`${this.baseUrl}/internal/stats/persist`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'X-Internal-API-Key': this.apiKey,
+        },
+        body: JSON.stringify({ personaId, kv, data }),
+        signal: AbortSignal.timeout(3000),
+      });
+      return res.ok;
+    } catch (err) {
+      console.error(`[ApiClient] writePersist failed:`, (err as Error).message);
+      return false;
+    }
+  }
+
   /**
    * Registers a dedicated game server with api-service.
    */

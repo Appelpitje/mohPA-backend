@@ -65,7 +65,7 @@ export class FeslEngineServer {
     this.gpspServer = new GsPspServer();
     this.serverRegistry = new GameServerRegistry({ publicIp: config.publicIp });
     this.availableServer = new GsAvailableServer(this.serverRegistry);
-    this.gstatsServer = new GsStatsServer();
+    this.gstatsServer = new GsStatsServer(this.apiClient);
     this.masterServer = new GsMasterServer(this.serverRegistry);
     this.masterServerAlt = new GsMasterServer(this.serverRegistry);
     this.serverBrowser = new GsServerBrowser(this.serverRegistry);

@@ -167,6 +167,13 @@ export async function handleAcct(ctx: FeslHandlerContext): Promise<Record<string
 
       connection.attachSession(personaSession);
 
+      const gsProfileId = toGsNumericId(currentSession.userId);
+      try {
+        await apiClient.rememberGsProfile(personaName, connection.gameSlug || 'mohpa', gsProfileId);
+      } catch (err) {
+        console.error(`[FESL] rememberGsProfile failed: ${(err as Error).message}`);
+      }
+
       return {
         TXN: txn,
         lkey: personaSession.lkey,

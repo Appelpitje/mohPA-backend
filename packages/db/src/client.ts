@@ -360,10 +360,14 @@ export class MemoryDbClient implements DbClient {
       if (conflictMatch) {
         const conflictKey = conflictMatch[1].trim().toLowerCase();
         const action = conflictMatch[2].toUpperCase();
-        const existingIdx = table.findIndex(r => r[conflictKey] === newRecord[conflictKey]);
+        const keyVal = newRecord[conflictKey];
+        const existingIdx =
+          keyVal == null || conflictKey.includes(',')
+            ? -1
+            : table.findIndex(r => r[conflictKey] === keyVal);
         if (existingIdx !== -1) {
           if (action === 'DO NOTHING') {
-            return { rows: [table[existingIdx] as T], rowCount: 1 };
+            return { rows: [], rowCount: 0 };
           }
           const updateSet = conflictMatch[3];
           this.applySetClause(updateSet, table[existingIdx], params, newRecord);
@@ -523,7 +527,14 @@ export class MemoryDbClient implements DbClient {
   }
 
   private applySetClause(setClause: string, row: Record<string, any>, params: any[], excluded?: Record<string, any>): void {
-    const assignments = setClause.split(',');
+    let clause = setClause.trim();
+    let mergeCustom = false;
+    const customIdx = clause.search(/custom_stats\s*=/i);
+    if (customIdx >= 0 && /jsonb_object_agg/i.test(clause.slice(customIdx))) {
+      mergeCustom = true;
+      clause = clause.slice(0, customIdx).replace(/,\s*$/, '');
+    }
+    const assignments = clause.split(',');
     for (const assign of assignments) {
       const parts = assign.split('=');
       if (parts.length !== 2) continue;
@@ -553,6 +564,9 @@ export class MemoryDbClient implements DbClient {
         row[col] = rhs.replace(/^'|'$/g, '');
       }
     }
+    if (mergeCustom && excluded) {
+      row.custom_stats = mergeNumericCustom(row.custom_stats, excluded.custom_stats);
+    }
   }
 
   public async transaction<T>(fn: (client: DbClient) => Promise<T>): Promise<T> {
@@ -566,6 +580,32 @@ export class MemoryDbClient implements DbClient {
   public isPostgres(): boolean {
     return false;
   }
+}
+
+function asJsonObject(value: any): Record<string, any> {
+  if (typeof value === 'string') {
+    try {
+      const parsed = JSON.parse(value);
+      return parsed && typeof parsed === 'object' ? parsed : {};
+    } catch {
+      return {};
+    }
+  }
+  if (value && typeof value === 'object') return value;
+  return {};
+}
+
+function mergeNumericCustom(current: any, incoming: any): Record<string, number> {
+  const left = asJsonObject(current);
+  const right = asJsonObject(incoming);
+  const keys = new Set([...Object.keys(left), ...Object.keys(right)]);
+  const out: Record<string, number> = {};
+  for (const key of keys) {
+    const a = Number(left[key] ?? 0);
+    const b = Number(right[key] ?? 0);
+    out[key] = (Number.isFinite(a) ? a : 0) + (Number.isFinite(b) ? b : 0);
+  }
+  return out;
 }
 
 let activeClient: DbClient | null = null;

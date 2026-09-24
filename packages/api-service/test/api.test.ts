@@ -358,6 +358,77 @@ describe('mohPA API Service Integration Tests', () => {
       expect(body.recordedMatch.mapName).toBe('Henderson Airfield');
     });
 
+    it('records a snapshot once and adds a second match', async () => {
+      const created = await app.inject({
+        method: 'POST',
+        url: '/api/v1/personas',
+        headers: { authorization: `Bearer ${authToken}` },
+        payload: { gameSlug: 'mohpa', name: 'Sgt_Irons' }
+      });
+      expect(created.statusCode).toBe(201);
+      const soldierId = JSON.parse(created.body).persona.id;
+      const headers = { 'x-internal-key': 'test-internal-key-67890' };
+      const payload = {
+        statsMatchKey: 'mohpa:1:2',
+        match: {
+          gameSlug: 'mohpa',
+          mapName: 'unknown',
+          gameMode: 'Invader',
+          durationSeconds: 60,
+          details: { players: [{ name: 'Sgt_Irons' }, { name: 'GhostSoldier' }] }
+        },
+        players: [{
+          personaId: soldierId,
+          kills: 3,
+          deaths: 0,
+          score: 0,
+          timePlayedSeconds: 60,
+          customStats: { totalNumKills: 3, totalPlayTime_Invader: 60 }
+        }]
+      };
+
+      const first = await app.inject({ method: 'POST', url: '/internal/stats/report', headers, payload });
+      const again = await app.inject({ method: 'POST', url: '/internal/stats/report', headers, payload });
+      const second = await app.inject({
+        method: 'POST',
+        url: '/internal/stats/report',
+        headers,
+        payload: { ...payload, statsMatchKey: 'mohpa:1:3', players: [{ ...payload.players[0], kills: 4, customStats: { totalNumKills: 4, totalPlayTime_Invader: 10 } }] }
+      });
+
+      expect(first.statusCode).toBe(200);
+      expect(JSON.parse(again.body).duplicate).toBe(true);
+      expect(second.statusCode).toBe(200);
+      const statsRes = await app.inject({ method: 'GET', url: `/api/v1/personas/${soldierId}/stats` });
+      const stats = JSON.parse(statsRes.body).stats;
+      expect(stats.kills).toBe(7);
+      expect(stats.customStats.totalNumKills).toBe(7);
+      expect(stats.customStats.totalPlayTime_Invader).toBe(70);
+
+      const missing = await app.inject({
+        method: 'GET',
+        url: '/internal/personas/lookup?name=GhostSoldier&gameSlug=mohpa',
+        headers
+      });
+      expect(missing.statusCode).toBe(404);
+
+      const profile = await app.inject({
+        method: 'POST',
+        url: '/internal/personas/gs-profile',
+        headers,
+        payload: { name: 'Sgt_Irons', gameSlug: 'mohpa', gsProfileId: 4242 }
+      });
+      expect(JSON.parse(profile.body).stored).toBe(true);
+      const byPid = await app.inject({
+        method: 'GET',
+        url: '/internal/personas/lookup?gsProfileId=4242&gameSlug=mohpa',
+        headers
+      });
+      const lookedUp = JSON.parse(byPid.body);
+      expect(lookedUp.name).toBe('Sgt_Irons');
+      expect(lookedUp.stats.kills).toBe(7);
+    });
+
     it('GET /internal/servers/lookup finds server by secretKey or IP/Port', async () => {
       const res = await app.inject({
         method: 'GET',

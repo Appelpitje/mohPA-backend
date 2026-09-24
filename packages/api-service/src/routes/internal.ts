@@ -92,19 +92,25 @@ export const internalRoutes: FastifyPluginAsync = async (fastify) => {
     return reply.send({ personas: enriched });
   });
 
-  // Lookup persona by name for NuLookupUserInfo
+  // Lookup persona by soldier name or GameSpy profile id
   fastify.get('/personas/lookup', async (request, reply) => {
-    const { name, gameSlug } = request.query as any || {};
-    if (!name) {
+    const { name, gameSlug, gsProfileId } = request.query as any || {};
+    const hasProfile = gsProfileId != null && gsProfileId !== '';
+    if (!name && !hasProfile) {
       return reply.code(400).send({ error: 'name is required' });
     }
 
-    let persona = gameSlug
-      ? await fastify.personaRepo.findByNameAndGame(name, gameSlug)
-      : await fastify.personaRepo.findByName(name);
+    let persona = null;
+    if (hasProfile) {
+      persona = await fastify.personaRepo.findByGsProfileId(Number(gsProfileId));
+    } else if (gameSlug) {
+      persona = await fastify.personaRepo.findByNameAndGame(name, gameSlug);
+    } else {
+      persona = await fastify.personaRepo.findByName(name);
+    }
 
     // Fallback: If not found, check registered user
-    if (!persona) {
+    if (!persona && name && !hasProfile) {
       const user = await fastify.userRepo.findByUsername(name);
       if (user) {
         persona = {
@@ -122,7 +128,31 @@ export const internalRoutes: FastifyPluginAsync = async (fastify) => {
       return reply.code(404).send({ error: 'Persona not found' });
     }
 
-    return reply.send(persona);
+    const stats = await fastify.statsRepo.getStats(persona.id);
+    return reply.send({
+      ...persona,
+      stats: stats || {
+        personaId: persona.id,
+        score: 0,
+        kills: 0,
+        deaths: 0,
+        wins: 0,
+        losses: 0,
+        timePlayedSeconds: 0,
+        customStats: {}
+      }
+    });
+  });
+
+  fastify.post('/personas/gs-profile', async (request, reply) => {
+    const { name, gameSlug, gsProfileId } = request.body as any || {};
+    if (!name || gsProfileId == null) {
+      return reply.code(400).send({ error: 'name and gsProfileId are required' });
+    }
+    const persona = await fastify.personaRepo.findByNameAndGame(String(name), gameSlug || 'mohpa');
+    if (!persona) return reply.send({ stored: false });
+    await fastify.personaRepo.setGsProfileId(persona.id, Number(gsProfileId));
+    return reply.send({ stored: true, personaId: persona.id });
   });
 
   // Get user details by ID
@@ -154,8 +184,40 @@ export const internalRoutes: FastifyPluginAsync = async (fastify) => {
     return reply.send(user);
   });
 
-  // Post-match telemetry reporting (gsum / rank update)
+  // Post-match telemetry reporting (dedicated-server snapshot or legacy single persona)
   fastify.post('/stats/report', async (request, reply) => {
+    const body = request.body as any || {};
+    if (body.statsMatchKey) {
+      const match = body.match || {};
+      const players = Array.isArray(body.players) ? body.players : [];
+      const result = await fastify.statsRepo.applyMatchReport({
+        statsMatchKey: String(body.statsMatchKey),
+        match: {
+          serverId: match.serverId || null,
+          gameSlug: match.gameSlug || 'mohpa',
+          mapName: match.mapName || 'unknown',
+          gameMode: match.gameMode || 'unknown',
+          durationSeconds: Number(match.durationSeconds || 0),
+          winnerTeam: match.winnerTeam !== undefined ? Number(match.winnerTeam) : null,
+          details: match.details || {}
+        },
+        players: players.filter((player: any) => player && player.personaId).map((player: any) => ({
+          personaId: String(player.personaId),
+          score: Number(player.score || 0),
+          kills: Number(player.kills || 0),
+          deaths: Number(player.deaths || 0),
+          timePlayedSeconds: Number(player.timePlayedSeconds || 0),
+          customStats: player.customStats || {}
+        }))
+      });
+      return reply.send({
+        success: true,
+        duplicate: !result.inserted,
+        updatedStats: result.updatedStats,
+        recordedMatch: result.match
+      });
+    }
+
     const {
       personaId,
       score = 0,
@@ -166,7 +228,7 @@ export const internalRoutes: FastifyPluginAsync = async (fastify) => {
       timePlayedSeconds = 0,
       customStats = {},
       match
-    } = request.body as any || {};
+    } = body;
 
     if (!personaId) {
       return reply.code(400).send({ error: 'personaId is required' });
@@ -200,6 +262,23 @@ export const internalRoutes: FastifyPluginAsync = async (fastify) => {
       updatedStats,
       recordedMatch
     });
+  });
+
+  fastify.post('/stats/persist', async (request, reply) => {
+    const body = request.body as any || {};
+    const kv = Number(body.kv ?? 1);
+    const data = body.data || {};
+    let persona = null;
+    if (body.personaId) {
+      persona = await fastify.personaRepo.findById(String(body.personaId));
+    } else if (body.gsProfileId != null && body.gsProfileId !== '') {
+      persona = await fastify.personaRepo.findByGsProfileId(Number(body.gsProfileId));
+    } else if (body.name) {
+      persona = await fastify.personaRepo.findByNameAndGame(String(body.name), body.gameSlug || 'mohpa');
+    }
+    if (!persona) return reply.send({ stored: false });
+    await fastify.statsRepo.writeCustomStats(persona.id, kv === 0, data);
+    return reply.send({ stored: true });
   });
 
   // Server lookup by IP & port or secret key

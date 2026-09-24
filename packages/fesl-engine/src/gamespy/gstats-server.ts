@@ -1,20 +1,14 @@
 import * as net from 'node:net';
 import * as crypto from 'node:crypto';
+import { GSTATS_XOR_KEY, parseGstatsBuffer, rawHexLine, xorAlign, type GstatsCommand } from './gstats-frames.js';
+import { buildStatsReport, GstatsMatchBuffer, type StatsReportBody } from './stats-ingest.js';
 
-/** XOR key used by gstats.c xcode_buf (enc1 = "GameSpy3D"). */
-export const GSTATS_XOR_KEY = Buffer.from('GameSpy3D', 'ascii');
+export { GSTATS_XOR_KEY };
 
 const FINAL = '\\final\\';
 
 export function gstatsXcode(buf: Buffer): Buffer {
-  const out = Buffer.from(buf);
-  let pos = 0;
-  for (let i = 0; i < out.length; i++) {
-    out[i] ^= GSTATS_XOR_KEY[pos];
-    pos += 1;
-    if (pos >= GSTATS_XOR_KEY.length) pos = 0;
-  }
-  return out;
+  return xorAlign(buf, 0);
 }
 
 export function gstatsValueForKey(decoded: string, key: string): string | undefined {
@@ -67,6 +61,130 @@ export function gstatsPersistReplyFor(decoded: string): string | undefined {
   return undefined;
 }
 
+export const CAREER_KEYS = [
+  'rankNumber',
+  'rankAllied',
+  'rankAxis',
+  'totalTeamBonusPoints',
+  'totalNumKills',
+  'totalPlayTime_Ranked',
+  'totalAlliedMostAccurate',
+  'totalAlliedMostLethal',
+  'totalAlliedMostValuable',
+  'totalAlliedMostHelpful',
+  'totalAxisMostAccurate',
+  'totalAxisMostLethal',
+  'totalAxisMostValuable',
+  'totalAxisMostHelpful',
+  'accuracy',
+  'totalNumShots',
+  'totalNumHits',
+  'totalNumHeadShots',
+  'totalNumTeammateKills',
+  'totalNumDeaths',
+  'totalNumFFDeaths',
+  'totalNumCorpsmanRevivals',
+  'totalNumCorpsmanHeals',
+  'totalNumDemoChargesPlanted',
+  'totalNumDemoChargesDetonated',
+  'totalNumDemoChargeDefuseFailures',
+  'totalNumDemoChargesDefused',
+  'totalPlayTime_FFA',
+  'totalPlayTime_TeamMatch',
+  'totalPlayTime_Invader',
+];
+
+export interface CareerStats {
+  kills: number;
+  deaths: number;
+  score: number;
+  timePlayedSeconds: number;
+  customStats: Record<string, unknown>;
+}
+
+export const EMPTY_CAREER: CareerStats = {
+  kills: 0,
+  deaths: 0,
+  score: 0,
+  timePlayedSeconds: 0,
+  customStats: {},
+};
+
+export interface GstatsPersona {
+  id?: string;
+  personaId?: string | number;
+  stats?: Partial<CareerStats>;
+}
+
+export interface GstatsApi {
+  reportMatch(body: StatsReportBody): Promise<boolean>;
+  getPersonaByName(name: string, gameSlug?: string): Promise<GstatsPersona | null>;
+  getPersonaByGsProfileId?(gsProfileId: number, gameSlug?: string): Promise<GstatsPersona | null>;
+  writePersist?(personaId: string, kv: number, data: Record<string, number>): Promise<boolean>;
+}
+
+export function careerValue(stats: CareerStats, key: string): string {
+  const custom = stats.customStats || {};
+  switch (key) {
+    case 'totalNumKills':
+      return String(stats.kills || 0);
+    case 'totalNumDeaths':
+      return String(stats.deaths || 0);
+    case 'totalTeamBonusPoints':
+      return String(stats.score || 0);
+    case 'totalPlayTime_Ranked':
+      return String(stats.timePlayedSeconds || 0);
+    case 'rankNumber':
+    case 'rankAllied':
+    case 'rankAxis':
+      return '0';
+    default: {
+      const raw = custom[key];
+      const n = typeof raw === 'number' ? raw : Number(raw ?? 0);
+      return String(Number.isFinite(n) ? Math.trunc(n) : 0);
+    }
+  }
+}
+
+export function careerData(stats: CareerStats, keys: string[]): string {
+  const list = keys.length > 0 ? keys : CAREER_KEYS;
+  let data = '';
+  for (const key of list) {
+    data += `\\${key}\\${careerValue(stats, key)}`;
+  }
+  return data;
+}
+
+export function parsePersistKv(data: string): Record<string, number> {
+  const parts = data.split('\\');
+  let i = parts[0] === '' ? 1 : 0;
+  const out: Record<string, number> = {};
+  for (; i + 1 < parts.length; i += 2) {
+    if (!parts[i] || !/^-?\d+$/.test(parts[i + 1])) continue;
+    out[parts[i]] = Number(parts[i + 1]);
+  }
+  return out;
+}
+
+function careerFromPersona(persona: GstatsPersona | null): CareerStats {
+  if (!persona?.stats) return EMPTY_CAREER;
+  const stats = persona.stats;
+  return {
+    kills: Number(stats.kills || 0),
+    deaths: Number(stats.deaths || 0),
+    score: Number(stats.score || 0),
+    timePlayedSeconds: Number(stats.timePlayedSeconds || 0),
+    customStats: stats.customStats || {},
+  };
+}
+
+function personaIdOf(persona: GstatsPersona | null): string | null {
+  if (!persona) return null;
+  const id = persona.id ?? persona.personaId;
+  if (id == null || id === '') return null;
+  return String(id);
+}
+
 function randomChallenge(length: number): string {
   const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnpqrstuvwxyz23456789';
   const bytes = crypto.randomBytes(length);
@@ -88,6 +206,8 @@ function randomChallenge(length: number): string {
 export class GsStatsServer {
   private server: net.Server | null = null;
   private connections = new Set<net.Socket>();
+
+  constructor(private readonly api: GstatsApi | null = null) {}
 
   public start(host: string, port: number): Promise<void> {
     return new Promise((resolve, reject) => {
@@ -120,39 +240,30 @@ export class GsStatsServer {
     socket.setNoDelay(true);
     socket.setKeepAlive(true, 1000);
     const remote = `${socket.remoteAddress}:${socket.remotePort}`;
-    const challenge = randomChallenge(32);
     const sesskey = (crypto.randomBytes(4).readUInt32BE(0) % 900000) + 100000;
-    let buffer = Buffer.alloc(0);
-    let sentSesskey = false;
+    let buffer: Buffer = Buffer.alloc(0);
+    const session = {
+      sentSesskey: false,
+      nicks: new Map<string, string>(),
+      matches: new GstatsMatchBuffer(),
+    };
 
-    const wire = buildGstatsChallenge(challenge);
-    console.log(`[GsStats] Connection from ${remote} challenge=${challenge}`);
-    socket.write(wire);
+    console.log(`[GsStats] Connection from ${remote}`);
+    socket.write(buildGstatsChallenge(randomChallenge(32)));
 
-    socket.on('data', (chunk) => {
+    socket.on('data', (chunk: Buffer) => {
       buffer = Buffer.concat([buffer, chunk]);
-      console.log(`[GsStats] [${remote}] RAW ${chunk.length}b`);
-      const finalBuf = Buffer.from(FINAL, 'ascii');
-      while (true) {
-        const finalIdx = buffer.indexOf(finalBuf);
-        const payload = finalIdx >= 0 ? buffer.subarray(0, finalIdx) : buffer;
-        if (finalIdx < 0 && payload.length < 8) break;
-        const decoded = gstatsXcode(payload).toString('latin1');
-        console.log(`[GsStats] [${remote}] decoded ${decoded.length}b`);
-        if (!sentSesskey && (decoded.includes('\\auth\\') || decoded.includes('\\gamename\\'))) {
-          sentSesskey = true;
-          const reply = buildGstatsSesskey(sesskey);
-          console.log(`[GsStats] [${remote}] SEND sesskey=${sesskey}`);
-          socket.write(reply);
-        } else {
-          const persist = gstatsPersistReplyFor(decoded);
-          if (persist) {
-            console.log(`[GsStats] [${remote}] SEND persist ${persist}`);
-            socket.write(buildGstatsPersistReply(persist));
-          }
+      const parsed = parseGstatsBuffer(buffer);
+      buffer = parsed.rest;
+      if (parsed.frames.length === 0) {
+        for (const raw of parsed.unrecognized) {
+          console.log(`[GsStats] [${remote}] ${rawHexLine(raw)}`);
         }
-        if (finalIdx < 0) break;
-        buffer = buffer.subarray(finalIdx + finalBuf.length);
+      }
+      for (const frame of parsed.frames) {
+        void this.handleFrame(socket, remote, sesskey, session, frame.command).catch((err) => {
+          console.error(`[GsStats] [${remote}] ${(err as Error).message}`);
+        });
       }
     });
 
@@ -163,5 +274,101 @@ export class GsStatsServer {
     socket.on('error', () => {
       this.connections.delete(socket);
     });
+  }
+
+  private async resolvePersona(
+    pid: string,
+    nicks: Map<string, string>
+  ): Promise<{ id: string; stats: CareerStats } | null> {
+    if (!this.api) return null;
+    const nick = nicks.get(pid);
+    let persona: GstatsPersona | null = null;
+    if (nick) {
+      persona = await this.api.getPersonaByName(nick, 'mohpa');
+    }
+    if (!persona && this.api.getPersonaByGsProfileId && /^\d+$/.test(pid)) {
+      persona = await this.api.getPersonaByGsProfileId(Number(pid), 'mohpa');
+    }
+    const id = personaIdOf(persona);
+    if (!id) return null;
+    return { id, stats: careerFromPersona(persona) };
+  }
+
+  private async handleFrame(
+    socket: net.Socket,
+    remote: string,
+    sesskey: number,
+    session: { sentSesskey: boolean; nicks: Map<string, string>; matches: GstatsMatchBuffer },
+    command: GstatsCommand
+  ): Promise<void> {
+    if (command.type === 'auth') {
+      if (!session.sentSesskey) {
+        session.sentSesskey = true;
+        console.log(`[GsStats] [${remote}] SEND sesskey=${sesskey}`);
+        socket.write(buildGstatsSesskey(sesskey));
+      }
+      return;
+    }
+
+    if (command.type === 'newgame') return;
+
+    if (command.type === 'updgame') {
+      const finalSnap = session.matches.takeFinal(command);
+      if (!finalSnap || !this.api) return;
+      try {
+        const report = await buildStatsReport(
+          finalSnap.connid,
+          finalSnap.sesskey,
+          finalSnap.gamedata,
+          async (name) => {
+            const persona = await this.api!.getPersonaByName(name, 'mohpa');
+            return personaIdOf(persona);
+          }
+        );
+        console.log(`[GsStats] [${remote}] reportMatch ${report.statsMatchKey}`);
+        const ok = await this.api.reportMatch(report);
+        if (!ok) console.error(`[GsStats] [${remote}] reportMatch failed ${report.statsMatchKey}`);
+      } catch (err) {
+        console.error(`[GsStats] [${remote}] reportMatch failed ${(err as Error).message}`);
+      }
+      return;
+    }
+
+    if (command.type === 'authp') {
+      if (command.pid && command.nick) session.nicks.set(command.pid, command.nick);
+      const reply = `\\pauthr\\${command.pid || '1'}\\lid\\${command.lid || '1'}`;
+      socket.write(buildGstatsPersistReply(reply));
+      return;
+    }
+
+    if (command.type === 'getpid') {
+      const reply = `\\getpidr\\${command.pid || '1'}\\lid\\${command.lid || '1'}`;
+      socket.write(buildGstatsPersistReply(reply));
+      return;
+    }
+
+    if (command.type === 'getpd') {
+      const lid = command.lid || '1';
+      const pid = command.pid || '1';
+      const keys = command.keys ? command.keys.split('\\').filter(Boolean) : [];
+      const resolved = await this.resolvePersona(pid, session.nicks);
+      const data = careerData(resolved?.stats || EMPTY_CAREER, keys);
+      const unix = Math.floor(Date.now() / 1000);
+      const reply = `\\getpdr\\1\\lid\\${lid}\\pid\\${pid}\\mod\\${unix}\\length\\${Buffer.byteLength(data, 'latin1')}\\data\\${data}`;
+      socket.write(buildGstatsPersistReply(reply));
+      return;
+    }
+
+    if (command.type === 'setpd') {
+      const lid = command.lid || '1';
+      const pid = command.pid || '1';
+      const resolved = await this.resolvePersona(pid, session.nicks);
+      if (resolved && this.api?.writePersist) {
+        await this.api.writePersist(resolved.id, Number(command.kv || 0), parsePersistKv(command.data));
+      }
+      const unix = Math.floor(Date.now() / 1000);
+      const reply = `\\setpdr\\1\\lid\\${lid}\\pid\\${pid}\\mod\\${unix}`;
+      socket.write(buildGstatsPersistReply(reply));
+    }
   }
 }

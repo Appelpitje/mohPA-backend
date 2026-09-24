@@ -75,18 +75,50 @@ export const statsRoutes: FastifyPluginAsync = async (fastify) => {
     }
 
     const stats = await fastify.statsRepo.getStats(persona.id);
+    let finalStats = stats || {
+      personaId: persona.id,
+      score: 0,
+      kills: 0,
+      deaths: 0,
+      wins: 0,
+      losses: 0,
+      timePlayedSeconds: 0,
+      customStats: {}
+    };
+
+    // Aggregate any sessions recorded for this player
+    try {
+      const sessRes = await fastify.db.query(
+        `SELECT duration_seconds, score, kills, deaths FROM server_player_sessions WHERE LOWER(player_name) = LOWER($1)`,
+        [persona.name]
+      );
+      if (sessRes.rows && sessRes.rows.length > 0) {
+        let sTime = 0;
+        let sScore = 0;
+        let sKills = 0;
+        let sDeaths = 0;
+        for (const row of sessRes.rows) {
+          sTime += Number(row.duration_seconds || 0);
+          sScore = Math.max(sScore, Number(row.score || 0));
+          sKills += Number(row.kills || 0);
+          sDeaths += Number(row.deaths || 0);
+        }
+
+        finalStats = {
+          ...finalStats,
+          timePlayedSeconds: Math.max(finalStats.timePlayedSeconds || 0, sTime),
+          score: Math.max(finalStats.score || 0, sScore),
+          kills: Math.max(finalStats.kills || 0, sKills),
+          deaths: Math.max(finalStats.deaths || 0, sDeaths),
+        };
+      }
+    } catch {
+      // Ignore if session query fails
+    }
+
     return reply.send({
       persona,
-      stats: stats || {
-        personaId: persona.id,
-        score: 0,
-        kills: 0,
-        deaths: 0,
-        wins: 0,
-        losses: 0,
-        timePlayedSeconds: 0,
-        customStats: {}
-      }
+      stats: finalStats
     });
   });
 

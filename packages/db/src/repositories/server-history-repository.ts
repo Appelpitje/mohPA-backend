@@ -154,6 +154,29 @@ export class ServerHistoryRepository {
           now.toISOString(),
         ]);
       }
+
+      // Also continuously increment career stats in persona_stats for registered personas
+      try {
+        const syncPersonaSql = `
+          UPDATE persona_stats ps
+          SET
+            time_played_seconds = ps.time_played_seconds + $1,
+            score = GREATEST(ps.score, $2),
+            kills = GREATEST(ps.kills, $3),
+            deaths = GREATEST(ps.deaths, $4)
+          FROM personas p
+          WHERE ps.persona_id = p.id AND LOWER(p.name) = LOWER($5)
+        `;
+        await this.db.query(syncPersonaSql, [
+          elapsedSeconds,
+          score,
+          kills,
+          deaths,
+          cleanName,
+        ]);
+      } catch {
+        // Ignore if query fails on mock db
+      }
     }
   }
 

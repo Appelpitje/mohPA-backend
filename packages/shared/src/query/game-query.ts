@@ -87,14 +87,18 @@ export function parseGameSpy1Response(dataStr: string): Omit<ServerQueryResult, 
     const pName = raw[`player_${idx}`] || raw[`player${idx}`] || `Player_${idx}`;
     const pScore = parseInt(raw[`score_${idx}`] || raw[`score${idx}`] || raw[`frags_${idx}`] || '0', 10);
     const pPing = parseInt(raw[`ping_${idx}`] || raw[`ping${idx}`] || '0', 10);
-    const pDeaths = raw[`deaths_${idx}`] !== undefined ? parseInt(raw[`deaths_${idx}`], 10) : undefined;
+    const rawKills = raw[`kills_${idx}`] ?? raw[`kills${idx}`] ?? raw[`frags_${idx}`] ?? raw[`frags${idx}`] ?? raw[`kill_${idx}`];
+    const rawDeaths = raw[`deaths_${idx}`] ?? raw[`deaths${idx}`] ?? raw[`death_${idx}`];
+    const pDeaths = rawDeaths !== undefined ? parseInt(rawDeaths, 10) : 0;
+    const pKills = rawKills !== undefined ? parseInt(rawKills, 10) : (!isNaN(pScore) ? pScore : 0);
     const pTeam = raw[`team_${idx}`] !== undefined ? parseInt(raw[`team_${idx}`], 10) : undefined;
 
     players.push({
       name: pName,
       score: isNaN(pScore) ? 0 : pScore,
+      kills: isNaN(pKills) ? 0 : pKills,
+      deaths: isNaN(pDeaths) ? 0 : pDeaths,
       ping: isNaN(pPing) ? 0 : pPing,
-      deaths: pDeaths !== undefined && !isNaN(pDeaths) ? pDeaths : undefined,
       team: pTeam !== undefined && !isNaN(pTeam) ? pTeam : undefined,
     });
   }
@@ -174,8 +178,11 @@ export function parseQuake3Response(dataStr: string): Omit<ServerQueryResult, 'o
 
     const match = line.match(/^([-\d]+)\s+(\d+)\s+"(.*)"$/);
     if (match) {
+      const pScore = parseInt(match[1], 10) || 0;
       players.push({
-        score: parseInt(match[1], 10) || 0,
+        score: pScore,
+        kills: pScore,
+        deaths: 0,
         ping: parseInt(match[2], 10) || 0,
         name: match[3] || `Player_${i}`,
       });

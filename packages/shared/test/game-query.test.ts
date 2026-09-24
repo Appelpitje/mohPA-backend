@@ -23,15 +23,17 @@ describe('Game Server Query Engine', () => {
       expect(parsed.players[0]).toEqual({
         name: 'TommyConlin',
         score: 100,
+        kills: 100,
+        deaths: 0,
         ping: 25,
-        deaths: undefined,
         team: 1,
       });
       expect(parsed.players[1]).toEqual({
         name: 'SergeantFoley',
         score: 75,
+        kills: 75,
+        deaths: 0,
         ping: 45,
-        deaths: undefined,
         team: 2,
       });
       expect(parsed.rules.timelimit).toBe('20');
@@ -55,11 +57,15 @@ describe('Game Server Query Engine', () => {
       expect(parsed.players[0]).toEqual({
         name: 'PrivateRyan',
         score: 15,
+        kills: 15,
+        deaths: 0,
         ping: 35,
       });
       expect(parsed.players[1]).toEqual({
         name: 'CaptainMiller',
         score: 10,
+        kills: 10,
+        deaths: 0,
         ping: 60,
       });
     });

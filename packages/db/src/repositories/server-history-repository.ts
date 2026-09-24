@@ -99,7 +99,7 @@ export class ServerHistoryRepository {
       if (!cleanName) continue;
 
       const score = Math.max(0, Number(player.score || 0));
-      const kills = Math.max(0, Number(player.kills || 0));
+      const kills = Math.max(0, Number(player.kills !== undefined ? player.kills : score));
       const deaths = Math.max(0, Number(player.deaths || 0));
 
       // Check for ongoing active session
@@ -179,16 +179,16 @@ export class ServerHistoryRepository {
     switch (range) {
       case '7d':
         startTime = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
-        bucketMs = 2 * 60 * 60 * 1000; // 2 hour buckets = 84 points
+        bucketMs = 60 * 60 * 1000; // 1 hour buckets = 168 points
         break;
       case '30d':
         startTime = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
-        bucketMs = 6 * 60 * 60 * 1000; // 6 hour buckets = 120 points
+        bucketMs = 4 * 60 * 60 * 1000; // 4 hour buckets = 180 points
         break;
       case '24h':
       default:
         startTime = new Date(now.getTime() - 24 * 60 * 60 * 1000);
-        bucketMs = 30 * 60 * 1000; // 30 minute buckets = 48 points
+        bucketMs = 15 * 60 * 1000; // 15 minute buckets = 96 points
         break;
     }
 
@@ -220,10 +220,15 @@ export class ServerHistoryRepository {
     const totalBuckets = Math.ceil((now.getTime() - startTime.getTime()) / bucketMs);
     const chart: ServerHistoryChartPoint[] = [];
 
+    const firstSnapshotTime = rawSnapshots.length > 0
+      ? new Date(rawSnapshots[0].recorded_at).getTime()
+      : null;
+
     let currentSnapshotIdx = 0;
-    let lastKnownPlayerCount = server.currentPlayers || 0;
+    let lastKnownPlayerCount = 0;
     let lastKnownOnline = server.isOnline;
     let lastKnownMap = server.mapName || '';
+    let lastSnapshotTimeMs = 0;
     const maxPlayers = server.maxPlayers || 64;
 
     for (let i = 0; i <= totalBuckets; i++) {
@@ -242,61 +247,56 @@ export class ServerHistoryRepository {
       }
 
       if (pointsInBucket.length > 0) {
-        let sumCount = 0;
-        let peakCount = 0;
+        // Take the latest actual snapshot in this interval (ACTUAL player count on that moment!)
+        const latestInBucket = pointsInBucket[pointsInBucket.length - 1];
+        const actualCount = Number(latestInBucket.player_count || 0);
+        let peakCount = actualCount;
         let onlineCount = 0;
-        const mapFrequency: Record<string, number> = {};
 
         for (const p of pointsInBucket) {
           const count = Number(p.player_count || 0);
-          sumCount += count;
           if (count > peakCount) peakCount = count;
           if (p.is_online) onlineCount++;
-          if (p.map_name) {
-            mapFrequency[p.map_name] = (mapFrequency[p.map_name] || 0) + 1;
-          }
         }
 
-        const avgCount = Math.round(sumCount / pointsInBucket.length);
         const isOnline = onlineCount > 0;
-        lastKnownPlayerCount = avgCount;
-        lastKnownOnline = isOnline;
+        const bestMap = latestInBucket.map_name || lastKnownMap;
 
-        let bestMap = lastKnownMap;
-        let bestMapCount = 0;
-        for (const [m, cnt] of Object.entries(mapFrequency)) {
-          if (cnt > bestMapCount) {
-            bestMap = m;
-            bestMapCount = cnt;
-          }
-        }
+        lastKnownPlayerCount = actualCount;
+        lastKnownOnline = isOnline;
         lastKnownMap = bestMap;
+        lastSnapshotTimeMs = new Date(latestInBucket.recorded_at).getTime();
 
         chart.push({
           timestamp: bucketTime.toISOString(),
-          playerCount: avgCount,
-          peakCount: Math.max(avgCount, peakCount),
-          maxPlayers: Number(pointsInBucket[0].max_players || maxPlayers),
+          playerCount: actualCount,
+          peakCount: Math.max(actualCount, peakCount),
+          maxPlayers: Number(latestInBucket.max_players || maxPlayers),
           isOnline,
           mapName: bestMap,
         });
       } else {
-        // Carry forward or mark offline if gap
+        const isBeforeFirstSnapshot = firstSnapshotTime !== null && bucketTime.getTime() < firstSnapshotTime - 10 * 60 * 1000;
+        const isStaleGap = lastSnapshotTimeMs === 0 || (bucketTime.getTime() - lastSnapshotTimeMs > 20 * 60 * 1000);
+
+        const playerCountAtMoment = (isBeforeFirstSnapshot || isStaleGap) ? 0 : lastKnownPlayerCount;
+
         chart.push({
           timestamp: bucketTime.toISOString(),
-          playerCount: lastKnownOnline ? lastKnownPlayerCount : 0,
-          peakCount: lastKnownOnline ? lastKnownPlayerCount : 0,
+          playerCount: lastKnownOnline ? playerCountAtMoment : 0,
+          peakCount: lastKnownOnline ? playerCountAtMoment : 0,
           maxPlayers,
-          isOnline: lastKnownOnline,
+          isOnline: isBeforeFirstSnapshot ? false : lastKnownOnline,
           mapName: lastKnownMap,
         });
       }
     }
 
-    // Ensure the very latest point reflects the live server state
+    // Ensure the very latest point reflects the live server state at this exact moment
     if (chart.length > 0) {
       const latest = chart[chart.length - 1];
-      latest.playerCount = server.currentPlayers || 0;
+      latest.playerCount = server.isOnline ? (server.currentPlayers || 0) : 0;
+      latest.peakCount = Math.max(latest.peakCount || 0, latest.playerCount);
       latest.isOnline = server.isOnline;
       if (server.mapName) latest.mapName = server.mapName;
     }
@@ -372,11 +372,16 @@ export class ServerHistoryRepository {
     const players: ServerHistoryPlayer[] = playersRes.rows.map((r: any) => {
       const name = r.player_name;
       const isOnline = livePlayers.has(name.toLowerCase().trim());
+      const sScore = Number(r.score || 0);
+      const sKills = Number(r.kills !== undefined && r.kills !== null ? r.kills : sScore);
+      const kills = Math.max(sKills, sScore);
+      const deaths = Number(r.deaths || 0);
+
       return {
         name,
-        score: Number(r.score || 0),
-        kills: Number(r.kills || 0),
-        deaths: Number(r.deaths || 0),
+        score: sScore,
+        kills,
+        deaths,
         timePlayedSeconds: Number(r.total_duration || 0),
         sessionCount: Number(r.session_count || 1),
         firstSeen: new Date(r.first_seen).toISOString(),
@@ -385,17 +390,54 @@ export class ServerHistoryRepository {
       };
     });
 
+    // Optionally augment with career stats for registered personas
+    if (players.length > 0) {
+      try {
+        const names = players.map((p) => p.name.toLowerCase());
+        const placeholders = names.map((_, i) => `$${i + 1}`).join(', ');
+        const statsRes = await this.db.query(
+          `SELECT LOWER(p.name) as name, ps.kills, ps.deaths FROM personas p JOIN persona_stats ps ON ps.persona_id = p.id WHERE LOWER(p.name) IN (${placeholders})`,
+          names
+        );
+        const statsMap = new Map<string, { kills: number; deaths: number }>();
+        for (const row of statsRes.rows) {
+          statsMap.set(row.name, {
+            kills: Number(row.kills || 0),
+            deaths: Number(row.deaths || 0),
+          });
+        }
+        for (const p of players) {
+          const c = statsMap.get(p.name.toLowerCase());
+          if (c) {
+            p.kills = Math.max(p.kills, c.kills);
+            p.deaths = Math.max(p.deaths, c.deaths);
+          }
+        }
+      } catch {
+        // Ignore if query fails
+      }
+    }
+
     // If server currently has active players in details.players not yet in historical table:
     if (server.details?.players && Array.isArray(server.details.players)) {
       for (const lp of server.details.players) {
         if (!lp?.name) continue;
-        const exists = players.some((p) => p.name.toLowerCase() === lp.name.toLowerCase());
-        if (!exists) {
+        const lpScore = Number(lp.score || 0);
+        const lpKills = Number(lp.kills !== undefined ? lp.kills : lpScore);
+        const lpDeaths = Number(lp.deaths || 0);
+        const existing = players.find((p) => p.name.toLowerCase() === lp.name.toLowerCase().trim());
+
+        if (existing) {
+          existing.score = Math.max(existing.score, lpScore);
+          existing.kills = Math.max(existing.kills, lpKills);
+          existing.deaths = Math.max(existing.deaths, lpDeaths);
+          existing.isOnline = true;
+        } else {
           players.unshift({
             name: lp.name,
-            score: Number(lp.score || 0),
-            kills: Number(lp.kills || 0),
-            deaths: Number(lp.deaths || 0),
+            score: lpScore,
+            kills: lpKills,
+            deaths: lpDeaths,
             timePlayedSeconds: 60,
             sessionCount: 1,
             firstSeen: now.toISOString(),
